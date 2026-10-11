@@ -1,0 +1,15 @@
+node_modules
+dist
+dev-dist
+*.local
+.DS_Store
+
+# Downloaded at build time by scripts/fetch-assets.mjs
+public/models/
+
+# Receipt photos show addresses, card digits and shopping habits; the repo is public.
+fixtures/receipts/*.jpg
+fixtures/receipts/*.jpeg
+fixtures/receipts/*.png
+fixtures/receipts/*.webp
+fixtures/receipts/*.heic

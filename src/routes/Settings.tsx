@@ -1,0 +1,160 @@
+import { useLiveQuery } from 'dexie-react-hooks';
+import { useEffect, useState } from 'react';
+import { applyTheme, savedTheme, type ThemeChoice } from '../app/theme';
+import { CategoryIcon } from '../components/CategoryIcon';
+import { Page } from '../components/Page';
+import { useToast } from '../components/Toast';
+import { Group, Row, Segmented } from '../components/primitives';
+import { BackupError, exportBackup, getSetting, restoreBackup, setSetting } from '../db/backup';
+import { setBudget } from '../db/receipts';
+import type { Category } from '../db/schema';
+import { useCategories } from '../hooks/data';
+import { centsToInput, formatDate } from '../lib/format';
+import { isDataKept } from '../lib/storage';
+import { parseMoneyInput } from '../parser/money';
+
+// Budgets, appearance, and the person's data: backup and restore (the phone is the only copy).
+
+const THEMES: ReadonlyArray<{ value: ThemeChoice; label: string }> = [
+  { value: 'system', label: 'Automatic' },
+  { value: 'light', label: 'Light' },
+  { value: 'dark', label: 'Dark' },
+];
+
+function BudgetRow({ category }: { category: Category }) {
+  const [text, setText] = useState(category.monthlyBudget ? centsToInput(category.monthlyBudget) : '');
+  const save = () => {
+    const cents = text.trim() ? parseMoneyInput(text) : null;
+    if (cents === category.monthlyBudget) return;
+    void setBudget(category.id, cents && cents > 0 ? cents : null);
+  };
+  return (
+    <div className="group/row flex items-center gap-3 pl-4">
+      <CategoryIcon icon={category.icon} size="sm" />
+      <div className="flex min-h-13 flex-1 items-center gap-3 border-b border-border pr-4 group-last/row:border-b-0">
+        <label htmlFor={`budget-${category.id}`} className="flex-1 text-body font-medium">
+          {category.name}
+        </label>
+        <input
+          id={`budget-${category.id}`}
+          inputMode="decimal"
+          placeholder="No budget"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onBlur={save}
+          className="w-28 bg-transparent py-3 text-right text-body font-medium tabular-nums outline-none placeholder:font-normal placeholder:text-muted-foreground focus-visible:text-primary"
+        />
+      </div>
+    </div>
+  );
+}
+
+async function shareOrDownload(file: File): Promise<void> {
+  if (navigator.canShare?.({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title: 'Spent backup' });
+      return;
+    } catch (err) {
+      if ((err as Error).name === 'AbortError') throw err;
+    }
+  }
+  const url = URL.createObjectURL(file);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = file.name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+export function Settings() {
+  const categories = useCategories() ?? [];
+  const lastBackup = useLiveQuery(() => getSetting<string>('lastBackupAt'), []);
+  const toast = useToast();
+  const [theme, setTheme] = useState<ThemeChoice>(savedTheme);
+  const [kept, setKept] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    void isDataKept().then(setKept);
+  }, []);
+
+  async function backUp() {
+    const backup = await exportBackup();
+    const day = backup.exportedAt.slice(0, 10);
+    const file = new File([JSON.stringify(backup)], `spent-backup-${day}.json`, { type: 'application/json' });
+    try {
+      await shareOrDownload(file);
+      await setSetting('lastBackupAt', backup.exportedAt);
+      toast(`Backed up ${backup.receipts.length} receipts`);
+    } catch {
+      // Cancelled.
+    }
+  }
+
+  async function restore(files: FileList | null) {
+    const file = files?.[0];
+    if (!file) return;
+    if (!window.confirm('Restoring replaces everything on this phone with what is in the backup. Continue?')) return;
+    try {
+      const { receipts } = await restoreBackup(JSON.parse(await file.text()));
+      toast(`Restored ${receipts} receipts`);
+    } catch (err) {
+      toast(err instanceof BackupError ? err.message : "That file couldn't be read as a backup.");
+    }
+  }
+
+  return (
+    <Page title="Settings" back="Back">
+      <Group title="Monthly budgets" footer="Set a budget and the dashboard shows how much of it you've used, and warns you before you go over.">
+        {categories
+          .filter((c) => !c.parentId)
+          .map((c) => (
+            <BudgetRow key={c.id} category={c} />
+          ))}
+      </Group>
+
+      <Group title="Appearance">
+        <div className="p-1.5">
+          <Segmented
+            label="Appearance"
+            value={theme}
+            options={THEMES}
+            onChange={(choice) => {
+              setTheme(choice);
+              applyTheme(choice);
+            }}
+          />
+        </div>
+      </Group>
+
+      <Group
+        title="Your data"
+        footer="Your receipts are kept only on this phone and never sent anywhere. Back up now and then (to Drive, email or files), so you can restore them on a new phone."
+      >
+        <Row onClick={backUp} title={<span className="text-primary">Back up now</span>} subtitle={lastBackup ? `Last backup ${formatDate(lastBackup.slice(0, 10))}` : 'Not backed up yet'} />
+        <label className="group/row block cursor-pointer pl-4 hover:bg-muted/50 active:bg-muted">
+          <span className="flex min-h-14 items-center border-b border-border py-3 pr-4 text-body font-medium text-primary group-last/row:border-b-0">Restore from a backup…</span>
+          <input
+            type="file"
+            accept="application/json,.json"
+            className="sr-only"
+            onChange={(e) => {
+              void restore(e.target.files);
+              e.target.value = '';
+            }}
+          />
+        </label>
+        {kept !== null && (
+          <Row
+            title="Kept safe by the browser"
+            value={<span className="text-muted-foreground">{kept ? 'Yes' : 'Not yet'}</span>}
+            subtitle={kept ? undefined : 'Add Spent to your home screen so the phone keeps its data.'}
+          />
+        )}
+      </Group>
+
+      <Group title="Testing">
+        <Row to="/test" title="Receipt reading test" subtitle="Check how well receipts are read, and save test receipts" />
+      </Group>
+    </Page>
+  );
+}

@@ -1,0 +1,186 @@
+import { productKey } from '../categorize/categorize';
+import { splitTotal } from '../categorize/split';
+import { learnHints } from '../parser/hints';
+import { matchStore, storeKey } from '../parser/store-match';
+import type { OcrLine, PaymentMethod } from '../parser/types';
+export { ensureSeeded } from './seed';
+import { db, type CategorySource, type LineItem, type Receipt, type Store, type Thumb } from './schema';
+
+// Saving and changing receipts. Every change keeps the receipt's split (its total shared over
+// categories) up to date, and teaches the app: a shop's category, a product's category.
+
+export interface DraftItem {
+  name: string;
+  qty: number;
+  unitPrice: number;
+  lineTotal: number;
+  kind: 'item' | 'discount';
+  vatCode: string | null;
+  categoryId: string;
+  categorySource: CategorySource;
+}
+
+/** A receipt as checked on the review screen (or typed in), ready to save. */
+export interface ReceiptDraft {
+  /** The known shop it was matched to, if any. */
+  storeId: number | null;
+  /** Shop name; for an expense without a receipt, what it was (may be empty). */
+  storeName: string;
+  taxId: string | null;
+  date: string;
+  total: number;
+  paymentMethod: PaymentMethod | null;
+  vatTotal: number | null;
+  discountTotal: number | null;
+  categoryId: string;
+  /** Only when the items added up to the total. */
+  items: DraftItem[];
+  source: 'scan' | 'manual';
+  note: string;
+}
+
+/** The known shop a receipt's name / VAT number belongs to. */
+export async function findStore(name: string | null, taxId: string | null): Promise<Store | null> {
+  return matchStore({ name, taxId }, await db.stores.toArray())?.store ?? null;
+}
+
+/**
+ * Saves a checked receipt. The shop is created or updated (its category is the one just
+ * confirmed, its receipt layout is learned from the OCR text), products the person put in a
+ * category are remembered, and only a small picture is kept, never the photo or OCR text.
+ */
+export async function saveReceipt(draft: ReceiptDraft, extras: { ocrLines?: OcrLine[]; thumb?: Blob | null } = {}): Promise<number> {
+  return db.transaction('rw', [db.stores, db.receipts, db.items, db.products, db.thumbs], async () => {
+    const storeId = await rememberStore(draft, extras.ocrLines);
+    for (const item of draft.items) {
+      if (item.categorySource === 'you') await db.products.put({ key: productKey(item.name), name: item.name, categoryId: item.categoryId });
+    }
+    const month = draft.date.slice(0, 7);
+    // Auto-increment keys: a saved row always has one.
+    const receiptId = (await db.receipts.add({
+      date: draft.date,
+      month,
+      storeId,
+      storeName: draft.storeName.trim(),
+      categoryId: draft.categoryId,
+      total: draft.total,
+      paymentMethod: draft.paymentMethod,
+      vatTotal: draft.vatTotal,
+      discountTotal: draft.discountTotal,
+      itemized: draft.items.length > 0,
+      source: draft.source,
+      note: draft.note,
+      split: splitTotal(draft.total, draft.items, draft.categoryId),
+      createdAt: Date.now(),
+    })) as number;
+    await db.items.bulkAdd(
+      draft.items.map((item) => ({ ...item, receiptId, month, name: item.name.trim(), productKey: productKey(item.name) })),
+    );
+    if (extras.thumb) await db.thumbs.put({ receiptId, image: extras.thumb });
+    return receiptId;
+  });
+}
+
+async function rememberStore(draft: ReceiptDraft, ocrLines: OcrLine[] | undefined): Promise<number | null> {
+  const name = draft.storeName.trim();
+  if (!name) return null;
+  const store = draft.storeId !== null ? await db.stores.get(draft.storeId) : await findStore(name, draft.taxId);
+  const hints = ocrLines?.length ? learnHints(ocrLines, { total: draft.total, date: draft.date }, store?.hints) : (store?.hints ?? {});
+  if (!store?.id) {
+    return (await db.stores.add({ name, aliases: [], taxId: draft.taxId, defaultCategoryId: draft.categoryId, hints })) as number;
+  }
+  const spellings = [store.name, ...store.aliases].map(storeKey);
+  await db.stores.update(store.id, {
+    aliases: spellings.includes(storeKey(name)) ? store.aliases : [...store.aliases, name],
+    taxId: store.taxId ?? draft.taxId,
+    defaultCategoryId: draft.categoryId,
+    hints,
+  });
+  return store.id;
+}
+
+/** Recomputes a receipt's split from its items (after any change to them or to the total). */
+async function resplit(receiptId: number): Promise<void> {
+  const receipt = await db.receipts.get(receiptId);
+  if (!receipt) return;
+  const items = await db.items.where('receiptId').equals(receiptId).toArray();
+  await db.receipts.update(receiptId, { split: splitTotal(receipt.total, receipt.itemized ? items : [], receipt.categoryId) });
+}
+
+export type ReceiptChanges = Partial<Pick<Receipt, 'storeName' | 'date' | 'total' | 'paymentMethod' | 'categoryId' | 'note'>>;
+
+/**
+ * Changes a saved receipt. A new main category also moves the items that were only following
+ * the shop, and becomes the shop's category from now on.
+ */
+export async function updateReceipt(id: number, changes: ReceiptChanges): Promise<void> {
+  await db.transaction('rw', [db.receipts, db.items, db.stores], async () => {
+    const receipt = await db.receipts.get(id);
+    if (!receipt) return;
+    const patch: Partial<Receipt> = { ...changes };
+    if (changes.date) patch.month = changes.date.slice(0, 7);
+    if (changes.storeName !== undefined) patch.storeName = changes.storeName.trim();
+    await db.receipts.update(id, patch);
+    const items = () => db.items.where('receiptId').equals(id);
+    if (patch.month && patch.month !== receipt.month) await items().modify({ month: patch.month });
+    if (changes.categoryId && changes.categoryId !== receipt.categoryId) {
+      await items()
+        .filter((i) => i.categorySource === 'shop')
+        .modify({ categoryId: changes.categoryId });
+      if (receipt.storeId !== null) await db.stores.update(receipt.storeId, { defaultCategoryId: changes.categoryId });
+    }
+    await resplit(id);
+  });
+}
+
+/**
+ * Puts an item in a category. The product is remembered, and the same product on other receipts
+ * follows (unless the person set those by hand).
+ */
+export async function setItemCategory(itemId: number, categoryId: string): Promise<void> {
+  await db.transaction('rw', [db.items, db.receipts, db.products], async () => {
+    const item = await db.items.get(itemId);
+    if (!item) return;
+    await db.items.update(itemId, { categoryId, categorySource: 'you' });
+    await db.products.put({ key: item.productKey, name: item.name, categoryId });
+    const same = await db.items
+      .where('productKey')
+      .equals(item.productKey)
+      .filter((i) => i.id !== itemId && i.categorySource !== 'you')
+      .toArray();
+    await db.items.bulkUpdate(same.map((i) => ({ key: i.id!, changes: { categoryId, categorySource: 'learned' as const } })));
+    for (const receiptId of new Set([item.receiptId, ...same.map((i) => i.receiptId)])) await resplit(receiptId);
+  });
+}
+
+export interface DeletedReceipt {
+  receipt: Receipt;
+  items: LineItem[];
+  thumb: Thumb | undefined;
+}
+
+/** Deletes a receipt; returns everything needed to undo it. */
+export async function deleteReceipt(id: number): Promise<DeletedReceipt | null> {
+  return db.transaction('rw', [db.receipts, db.items, db.thumbs], async () => {
+    const receipt = await db.receipts.get(id);
+    if (!receipt) return null;
+    const items = await db.items.where('receiptId').equals(id).toArray();
+    const thumb = await db.thumbs.get(id);
+    await db.items.where('receiptId').equals(id).delete();
+    await db.thumbs.delete(id);
+    await db.receipts.delete(id);
+    return { receipt, items, thumb };
+  });
+}
+
+export async function restoreReceipt(deleted: DeletedReceipt): Promise<void> {
+  await db.transaction('rw', [db.receipts, db.items, db.thumbs], async () => {
+    await db.receipts.put(deleted.receipt);
+    await db.items.bulkPut(deleted.items);
+    if (deleted.thumb) await db.thumbs.put(deleted.thumb);
+  });
+}
+
+export async function setBudget(categoryId: string, monthlyBudget: number | null): Promise<void> {
+  await db.categories.update(categoryId, { monthlyBudget });
+}

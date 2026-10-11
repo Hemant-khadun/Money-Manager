@@ -1,0 +1,188 @@
+/* Design tokens (docs/PLAN.md §7b). The names follow shadcn/ui, so a component pasted from
+   ui.shadcn.com or 21st.dev picks up Spent's colours and dark mode without changes.
+   Light values on :root; dark under prefers-color-scheme, unless Settings picked a theme
+   (data-theme on <html>). Contrast checked: text ≥ 4.5:1, icons and marks ≥ 3:1. */
+:root {
+  color-scheme: light;
+  --background: #f6f6f8;
+  --foreground: #0b0b0f;
+  --card: #ffffff;
+  --card-foreground: var(--foreground);
+  --popover: #ffffff;
+  --popover-foreground: var(--foreground);
+  /* The one brand colour: buttons, links, the highlighted mark in a chart. */
+  --primary: #5b4cf0;
+  --primary-foreground: #ffffff;
+  --secondary: #efeff3;
+  --secondary-foreground: var(--foreground);
+  --muted: #efeff3;
+  --muted-foreground: #6b6b76;
+  /* A control lifted off a muted track: the thumb of a segmented control. */
+  --raised: #ffffff;
+  /* shadcn's "accent" is a quiet hover background, not the brand colour. */
+  --accent: #efeff3;
+  --accent-foreground: var(--foreground);
+  --destructive: #dc2626;
+  --border: #e6e6ec;
+  --input: #e6e6ec;
+  --ring: #5b4cf0;
+  /* Grey for marks that step back: other months, last month's line. */
+  --track: #d4d4dc;
+  --good: #16a34a;
+  --warn: #d97706;
+  --bad: #dc2626;
+  --chart-1: var(--primary);
+  --chart-2: var(--track);
+  --shadow-card: 0 1px 2px rgb(16 16 24 / 0.04), 0 2px 8px -2px rgb(16 16 24 / 0.05);
+  --shadow-float: 0 12px 32px -8px rgb(16 16 24 / 0.18), 0 2px 6px rgb(16 16 24 / 0.06);
+  --glow-1: rgb(91 76 240 / 0.2);
+  --glow-2: rgb(236 72 153 / 0.12);
+  --glow-3: rgb(14 165 233 / 0.12);
+
+  /* Category tiles: decoration only. A category is always named and has its own icon. */
+  --hue-green: #16a34a;
+  --hue-sky: #0284c7;
+  --hue-pink: #db2777;
+  --hue-rose: #e11d48;
+  --hue-amber: #d97706;
+  --hue-orange: #ea580c;
+  --hue-violet: #7c3aed;
+  --hue-blue: #2563eb;
+  --hue-stone: #78716c;
+  --hue-teal: #0d9488;
+  --hue-fuchsia: #c026d3;
+  --hue-slate: #64748b;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+    --background: #0a0a0c;
+    --foreground: #f4f4f6;
+    --card: #141417;
+    --popover: #1b1b1f;
+    --primary: #a99fff;
+    --primary-foreground: #0c0a24;
+    --secondary: #1e1e23;
+    --muted: #1e1e23;
+    --muted-foreground: #a1a1aa;
+    --raised: #2c2c33;
+    --accent: #1e1e23;
+    --destructive: #f87171;
+    --border: #25252b;
+    --input: #2c2c33;
+    --ring: #a99fff;
+    --track: #45454f;
+    --good: #34d399;
+    --warn: #fbbf24;
+    --bad: #f87171;
+    --shadow-card: inset 0 1px 0 rgb(255 255 255 / 0.03);
+    --shadow-float: 0 16px 40px -8px rgb(0 0 0 / 0.7), inset 0 1px 0 rgb(255 255 255 / 0.06);
+    --glow-1: rgb(124 108 255 / 0.22);
+    --glow-2: rgb(236 72 153 / 0.1);
+    --glow-3: rgb(14 165 233 / 0.1);
+    --hue-green: #4ade80;
+    --hue-sky: #38bdf8;
+    --hue-pink: #f472b6;
+    --hue-rose: #fb7185;
+    --hue-amber: #fbbf24;
+    --hue-orange: #fb923c;
+    --hue-violet: #a78bfa;
+    --hue-blue: #60a5fa;
+    --hue-stone: #a8a29e;
+    --hue-teal: #2dd4bf;
+    --hue-fuchsia: #e879f9;
+    --hue-slate: #94a3b8;
+  }
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --background: #0a0a0c;
+  --foreground: #f4f4f6;
+  --card: #141417;
+  --popover: #1b1b1f;
+  --primary: #a99fff;
+  --primary-foreground: #0c0a24;
+  --secondary: #1e1e23;
+  --muted: #1e1e23;
+  --muted-foreground: #a1a1aa;
+  --raised: #2c2c33;
+  --accent: #1e1e23;
+  --destructive: #f87171;
+  --border: #25252b;
+  --input: #2c2c33;
+  --ring: #a99fff;
+  --track: #45454f;
+  --good: #34d399;
+  --warn: #fbbf24;
+  --bad: #f87171;
+  --shadow-card: inset 0 1px 0 rgb(255 255 255 / 0.03);
+  --shadow-float: 0 16px 40px -8px rgb(0 0 0 / 0.7), inset 0 1px 0 rgb(255 255 255 / 0.06);
+  --glow-1: rgb(124 108 255 / 0.22);
+  --glow-2: rgb(236 72 153 / 0.1);
+  --glow-3: rgb(14 165 233 / 0.1);
+  --hue-green: #4ade80;
+  --hue-sky: #38bdf8;
+  --hue-pink: #f472b6;
+  --hue-rose: #fb7185;
+  --hue-amber: #fbbf24;
+  --hue-orange: #fb923c;
+  --hue-violet: #a78bfa;
+  --hue-blue: #60a5fa;
+  --hue-stone: #a8a29e;
+  --hue-teal: #2dd4bf;
+  --hue-fuchsia: #e879f9;
+  --hue-slate: #94a3b8;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-raised: var(--raised);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-track: var(--track);
+  --color-good: var(--good);
+  --color-warn: var(--warn);
+  --color-bad: var(--bad);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --shadow-card: var(--shadow-card);
+  --shadow-float: var(--shadow-float);
+  --font-sans: 'Inter Variable', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --radius: 16px;
+  --radius-sm: 10px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-3xl: 28px;
+}
+
+/* `dark:` follows Spent's own theme: the phone's setting, unless Settings chose Light or Dark.
+   (Components pasted from shadcn/21st.dev use it.) */
+@custom-variant dark {
+  &:where([data-theme='dark'], [data-theme='dark'] *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where(:root:not([data-theme='light']), :root:not([data-theme='light']) *) {
+      @slot;
+    }
+  }
+}
