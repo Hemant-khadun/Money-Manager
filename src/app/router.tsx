@@ -52,6 +52,7 @@ const routeTree = root.addChildren([
   createRoute({ getParentRoute: () => root, path: '/prices', component: lazyRouteComponent(() => import('../routes/Prices'), 'Prices') }),
   createRoute({ getParentRoute: () => root, path: '/product/$key', component: lazyRouteComponent(() => import('../routes/ProductDetail'), 'ProductDetail') }),
   createRoute({ getParentRoute: () => root, path: '/settings', component: lazyRouteComponent(() => import('../routes/Settings'), 'Settings') }),
+  createRoute({ getParentRoute: () => root, path: '/debug', component: lazyRouteComponent(() => import('../routes/Debug'), 'Debug') }),
   createRoute({
     getParentRoute: () => root,
     path: '/test',

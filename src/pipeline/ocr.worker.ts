@@ -2,6 +2,7 @@ import * as ort from 'onnxruntime-web';
 // The default onnxruntime-web bundle (WebGPU + WASM) fetches only this binary; Vite emits it with a content hash.
 import ortWasmUrl from 'onnxruntime-web/ort-wasm-simd-threaded.jsep.wasm?url';
 import { PaddleOcrService, getDefaultWebExecutionProviders } from 'ppu-paddle-ocr/web';
+import { describeError } from '../lib/describe-error';
 import type { OcrBackend, OcrRequest, OcrResponse } from './ocr-protocol';
 import { applyTextThreshold } from './ocr-tuning';
 import { ORIENTATION_TEST_JPEG, jpegOrientation, shrinkFor, uprightFrame } from './photo';
@@ -17,6 +18,25 @@ let ready: Promise<void> | null = null;
 
 function post(msg: OcrResponse) {
   scope.postMessage(msg);
+}
+
+/** A line for the problem report's log. */
+const note = (message: string) => post({ type: 'log', message });
+
+scope.addEventListener('error', (event) => note(`Uncaught: ${event.message}`));
+scope.addEventListener('unhandledrejection', (event) => note(`Unhandled: ${describeError((event as PromiseRejectionEvent).reason)}`));
+
+/** The phone's graphics chip as WebGPU describes it, for the log. */
+async function graphicsChip(): Promise<string> {
+  if (!('gpu' in navigator) || !navigator.gpu) return 'no WebGPU';
+  try {
+    const adapter = await navigator.gpu.requestAdapter();
+    if (!adapter) return 'WebGPU, but no graphics chip offered';
+    const info = adapter.info;
+    return `WebGPU: ${[info?.vendor, info?.architecture, info?.device, info?.description].filter(Boolean).join(' ') || 'no details'}`;
+  } catch (err) {
+    return `WebGPU failed: ${describeError(err)}`;
+  }
 }
 
 // The OCR library reads pixels back from canvases once per line of text. Without
@@ -54,6 +74,7 @@ const turnsPhotos: Promise<boolean> = (async () => {
 
 /** Decodes the photo onto a canvas: upright, and shrunk if it is bigger than a phone can handle (photo.ts). */
 async function toCanvas(bytes: ArrayBuffer): Promise<OffscreenCanvas> {
+  const started = performance.now();
   const bitmap = await createImageBitmap(new Blob([bytes]));
   try {
     // Phones save most photos sideways, marked "turn right to view"; turn it here if the browser didn't.
@@ -67,6 +88,10 @@ async function toCanvas(bytes: ArrayBuffer): Promise<OffscreenCanvas> {
     ctx.setTransform(...frame.transform);
     ctx.drawImage(bitmap, 0, 0);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
+    note(
+      `Photo ${(bytes.byteLength / 1e6).toFixed(1)} MB, ${bitmap.width}×${bitmap.height}; browser turns photos: ${(await turnsPhotos) ? 'yes' : 'no'}; ` +
+        `orientation mark ${jpegOrientation(bytes)}; reading it at ${frame.width}×${frame.height} (ready in ${Math.round(performance.now() - started)} ms)`,
+    );
     return canvas;
   } finally {
     bitmap.close();
@@ -93,12 +118,15 @@ async function start(providers: Providers): Promise<{ ocr: PaddleOcrService; fel
     session: {
       executionProviders: providers,
       graphOptimizationLevel: 'all',
-      onSessionFallback: () => {
+      onSessionFallback: (err) => {
         fellBack = true;
+        note(`The graphics chip couldn't load the models: ${describeError(err)}`);
       },
     },
   });
+  const started = performance.now();
   await ocr.initialize();
+  note(`Models loaded for ${providers.join(' + ')} in ${Math.round(performance.now() - started)} ms${fellBack ? ', on the processor after all' : ''}`);
   if (!applyTextThreshold(ocr)) console.warn('[ocr] could not apply the text threshold; closely printed lines may merge');
   return { ocr, fellBack };
 }
@@ -118,8 +146,11 @@ async function readsTestLine(ocr: PaddleOcrService): Promise<boolean> {
     ctx.textBaseline = 'middle';
     ctx.fillText('TOTAL 123.45', 24, 48);
     const { text } = await ocr.recognize(canvas, { noCache: true });
-    return text.replace(/\s/g, '').includes('123.45');
-  } catch {
+    const right = text.replace(/\s/g, '').includes('123.45');
+    note(`Test line "TOTAL 123.45" read as "${text}": ${right ? 'right' : 'wrong'}`);
+    return right;
+  } catch (err) {
+    note(`Test line failed: ${describeError(err)}`);
     return false;
   }
 }
@@ -127,6 +158,7 @@ async function readsTestLine(ocr: PaddleOcrService): Promise<boolean> {
 /** Leaves the graphics chip for the processor: slower, but it works on every phone. */
 async function useProcessor(reason: unknown) {
   console.warn('[ocr] reading on the processor instead of the graphics chip:', reason);
+  note(`Switching to the processor: ${describeError(reason)}`);
   const old = service;
   service = null;
   await old?.destroy().catch(() => {});
@@ -137,6 +169,7 @@ async function useProcessor(reason: unknown) {
 async function init(url: string) {
   const started = performance.now();
   modelsUrl = url;
+  note(`Reader starting. ${await graphicsChip()}; ${navigator.hardwareConcurrency ?? '?'} cores`);
   // Self-hosted runtime instead of the library's jsDelivr default: no third-party requests.
   ort.env.wasm.wasmPaths = { wasm: ortWasmUrl };
   const providers = (await getDefaultWebExecutionProviders()) ?? ['wasm'];
@@ -161,6 +194,7 @@ scope.onmessage = async (event: MessageEvent<OcrRequest>) => {
   const msg = event.data;
   if (msg.type === 'init') {
     ready ??= init(msg.modelsUrl).catch((err: unknown) => {
+      note(`Reader couldn't start: ${describeError(err)}`);
       ready = null;
       post({ type: 'error', id: null, message: err instanceof Error ? err.message : String(err) });
     });
@@ -181,8 +215,10 @@ scope.onmessage = async (event: MessageEvent<OcrRequest>) => {
       await useProcessor(err);
       result = await read(photo, msg);
     }
+    note(`Read ${result.lines.length} lines in ${((performance.now() - started) / 1000).toFixed(1)} s on the ${backend === 'webgpu' ? 'graphics chip' : 'processor'}`);
     post({ type: 'result', id: msg.id, lines: result.lines, ms: Math.round(performance.now() - started), report: result.report });
   } catch (err) {
+    note(`Reading failed: ${describeError(err)}`);
     post({ type: 'error', id: msg.id, message: err instanceof Error ? err.message : String(err) });
   }
 };

@@ -1,4 +1,5 @@
 import type { OcrLine } from '../parser/types';
+import { debugLog } from '../lib/debug-log';
 import type { OcrBackend, OcrRequest, OcrResponse, OcrStrategy, ReadReport } from './ocr-protocol';
 
 export interface OcrEngineInfo {
@@ -39,14 +40,20 @@ export class OcrClient {
   /** Starts the worker and loads the models (a few MB, cached by the service worker after the first time). */
   ready(): Promise<OcrEngineInfo> {
     this.readyPromise ??= new Promise<OcrEngineInfo>((resolve, reject) => {
+      debugLog('app', 'Starting the reader');
       const worker = new Worker(new URL('./ocr.worker.ts', import.meta.url), { type: 'module' });
       this.worker = worker;
       worker.onmessage = (event: MessageEvent<OcrResponse>) => {
         this.heardAt = Date.now();
         const msg = event.data;
-        if (msg.type === 'ready') resolve({ backend: msg.backend, loadMs: msg.loadMs });
-        else if (msg.type === 'progress') this.pending.get(msg.id)?.onStep?.(msg.step, msg.done, msg.next);
-        else if (msg.type === 'result') this.settle(msg.id)?.resolve({ lines: msg.lines, ms: msg.ms, report: msg.report });
+        if (msg.type === 'log') debugLog('reader', msg.message);
+        else if (msg.type === 'ready') {
+          debugLog('app', `Reader ready on the ${msg.backend === 'webgpu' ? 'graphics chip' : 'processor'} in ${(msg.loadMs / 1000).toFixed(1)} s`);
+          resolve({ backend: msg.backend, loadMs: msg.loadMs });
+        } else if (msg.type === 'progress') {
+          debugLog('reader', `Step: ${msg.step}`);
+          this.pending.get(msg.id)?.onStep?.(msg.step, msg.done, msg.next);
+        } else if (msg.type === 'result') this.settle(msg.id)?.resolve({ lines: msg.lines, ms: msg.ms, report: msg.report });
         else if (msg.id === null) {
           const err = new Error(msg.message);
           reject(err);
@@ -55,6 +62,7 @@ export class OcrClient {
       };
       worker.onerror = (event) => {
         console.error('[ocr] the worker crashed:', event.message);
+        debugLog('app', `Reader crashed: ${event.message || 'no message'}${event.filename ? ` (${event.filename.split('/').pop()}:${event.lineno})` : ''}`);
         const err = new ReaderStopped('The receipt reader stopped, maybe because the phone ran short of memory.');
         reject(err);
         this.stop(err);
@@ -72,6 +80,7 @@ export class OcrClient {
     await this.ready();
     const bytes = await image.arrayBuffer();
     const id = this.nextId++;
+    debugLog('app', `Sending a ${(bytes.byteLength / 1e6).toFixed(1)} MB photo to the reader`);
     return new Promise<OcrRun>((resolve, reject) => {
       this.pending.set(id, { resolve, reject, onStep });
       const msg: OcrRequest = { type: 'recognize', id, image: bytes, strategy };
@@ -82,6 +91,7 @@ export class OcrClient {
           clearInterval(this.watchdog);
           this.watchdog = undefined;
         } else if (Date.now() - this.heardAt > STALL_MS) {
+          debugLog('app', `Reader silent for ${STALL_MS / 1000} s: stopping it`);
           this.stop(new ReaderStopped('The receipt reader stopped responding, maybe because the phone ran short of memory.'));
         }
       }, 5000);

@@ -39,4 +39,6 @@ export type OcrResponse =
   /** A plain-language step, shown while the receipt is being read; how far along it is as the step starts, and where the step ends (0..1). */
   | { type: 'progress'; id: number; step: string; done: number; next: number }
   | { type: 'result'; id: number; lines: OcrLine[]; ms: number; report: ReadReport }
-  | { type: 'error'; id: number | null; message: string };
+  | { type: 'error'; id: number | null; message: string }
+  /** What the reader decided or ran into, for the problem report's log (#/debug). */
+  | { type: 'log'; message: string };

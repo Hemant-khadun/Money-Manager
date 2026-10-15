@@ -1,4 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
+import { describeError } from '../lib/describe-error';
+import { debugLog } from '../lib/debug-log';
 import type { OcrLine, ParsedReceipt } from '../parser/types';
 import { OcrClient, ReaderStopped, type OcrEngineInfo } from '../pipeline/ocr-client';
 import type { OcrStrategy, ReadReport } from '../pipeline/ocr-protocol';
@@ -136,6 +138,12 @@ export function useReceiptReader(options: ReaderOptions = {}) {
         const { parseReceipt, stitchPhotos } = await tools();
         const readings = job.photos.map((p) => cache.current.get(p.id)!);
         const joined = stitchPhotos(readings.map((r) => r.lines));
+        const parsed = parseReceipt(joined.lines);
+        const found = (what: string, value: unknown) => `${what} ${value == null ? 'not found' : 'found'}`;
+        debugLog(
+          'app',
+          `Receipt read: ${joined.lines.length} lines; ${[found('shop', parsed.storeName), found('date', parsed.date), found('total', parsed.total)].join(', ')}; ${parsed.items.length} items`,
+        );
         update(job.scanId, () => ({
           status: 'done',
           step: undefined,
@@ -147,11 +155,12 @@ export function useReceiptReader(options: ReaderOptions = {}) {
           joins: joined.joins,
           lines: joined.lines,
           ms: readings.reduce((t, r) => t + r.ms, 0),
-          parsed: parseReceipt(joined.lines),
+          parsed,
         }));
         const batchId = batchOf.current.get(job.scanId);
         if (batchId !== undefined) await sortBatch(batchId);
       } catch (err) {
+        debugLog('app', `Receipt failed: ${describeError(err)}`);
         update(job.scanId, () => ({
           status: 'error',
           step: undefined,
@@ -210,6 +219,7 @@ export function useReceiptReader(options: ReaderOptions = {}) {
   /** New photos: each starts as its own receipt; photos added together are sorted once read. Returns their ids. */
   function add(files: FileList | File[] | null): number[] {
     if (!files?.length) return [];
+    for (const file of files) debugLog('app', `Photo chosen: ${(file.size / 1e6).toFixed(1)} MB, ${file.type || 'unknown type'}`);
     const added = toPhotos(files).map((photo): ReadScan => ({ id: nextId++, photos: [photo], status: 'queued' }));
     if (added.length > 1) {
       const batchId = nextId++;

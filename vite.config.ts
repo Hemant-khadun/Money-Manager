@@ -8,6 +8,10 @@ import { fileURLToPath } from 'node:url';
 // custom domains, and any other static host without rewrite rules.
 export default defineConfig({
   base: './',
+  // Shown in the problem report (#/debug), to tell which version a phone is running.
+  define: {
+    __APP_VERSION__: JSON.stringify(`${process.env.GITHUB_SHA?.slice(0, 7) ?? 'local'}, built ${new Date().toISOString().slice(0, 16).replace('T', ' ')} UTC`),
+  },
   // "@/..." is how shadcn/ui and 21st.dev components import each other (see components.json).
   resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
   plugins: [

@@ -79,6 +79,9 @@ Most printed receipts: supermarkets, pharmacies, fuel stations, restaurants, har
 **It read something wrong. What do I do?**
 Fix it on the *Check the receipt* screen before saving. Spent learns from your corrections for that shop.
 
+**Scanning isn't working on my phone. What can I do?**
+Open the problem report: [hemant-khadun.github.io/Money-Manager/#/debug](https://hemant-khadun.github.io/Money-Manager/#/debug) (also in Settings → *Problem report*). Try a photo there, tap **Copy report** and send it. It shows what went wrong, step by step.
+
 **Can I use it on a computer?**
 Yes, it opens in any modern browser. It's just easiest on a phone, where the camera is.
 
