@@ -2,8 +2,9 @@ import * as ort from 'onnxruntime-web';
 // The default onnxruntime-web bundle (WebGPU + WASM) fetches only this binary; Vite emits it with a content hash.
 import ortWasmUrl from 'onnxruntime-web/ort-wasm-simd-threaded.jsep.wasm?url';
 import { PaddleOcrService, getDefaultWebExecutionProviders } from 'ppu-paddle-ocr/web';
-import type { OcrRequest, OcrResponse } from './ocr-protocol';
+import type { OcrBackend, OcrRequest, OcrResponse } from './ocr-protocol';
 import { applyTextThreshold } from './ocr-tuning';
+import { ORIENTATION_TEST_JPEG, jpegOrientation, shrinkFor, uprightFrame } from './photo';
 import { readReceipt, type Canvases, type OcrEngine } from './read-receipt';
 import { PART_MAX } from './reading-plan';
 
@@ -42,22 +43,45 @@ const canvases: Canvases<OffscreenCanvas> = {
   pixels: (canvas) => context(canvas).getImageData(0, 0, canvas.width, canvas.height).data,
 };
 
-/** Decodes the photo (honouring its EXIF rotation) onto a canvas. */
+/** Whether this browser turns photos upright itself (by their EXIF orientation) when decoding them. */
+const turnsPhotos: Promise<boolean> = (async () => {
+  const test = Uint8Array.from(atob(ORIENTATION_TEST_JPEG), (c) => c.charCodeAt(0));
+  const bitmap = await createImageBitmap(new Blob([test], { type: 'image/jpeg' }));
+  const turned = bitmap.height > bitmap.width;
+  bitmap.close();
+  return turned;
+})().catch(() => true);
+
+/** Decodes the photo onto a canvas: upright, and shrunk if it is bigger than a phone can handle (photo.ts). */
 async function toCanvas(bytes: ArrayBuffer): Promise<OffscreenCanvas> {
   const bitmap = await createImageBitmap(new Blob([bytes]));
-  const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
-  context(canvas).drawImage(bitmap, 0, 0);
-  bitmap.close();
-  return canvas;
+  try {
+    // Phones save most photos sideways, marked "turn right to view"; turn it here if the browser didn't.
+    const orientation = (await turnsPhotos) ? 1 : jpegOrientation(bytes);
+    const frame = uprightFrame(orientation, bitmap.width, bitmap.height, shrinkFor(bitmap.width, bitmap.height));
+    const canvas = new OffscreenCanvas(frame.width, frame.height);
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if (!ctx) throw new Error(`Couldn't make a ${frame.width} × ${frame.height} canvas`);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.setTransform(...frame.transform);
+    ctx.drawImage(bitmap, 0, 0);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    return canvas;
+  } finally {
+    bitmap.close();
+  }
 }
 
-async function init(modelsUrl: string) {
-  const started = performance.now();
-  // Self-hosted runtime instead of the library's jsDelivr default: no third-party requests.
-  ort.env.wasm.wasmPaths = { wasm: ortWasmUrl };
-  const providers = (await getDefaultWebExecutionProviders()) ?? ['wasm'];
+type Providers = NonNullable<Awaited<ReturnType<typeof getDefaultWebExecutionProviders>>>;
+
+let modelsUrl = '';
+let backend: OcrBackend = 'wasm';
+
+/** Loads the models into a reader that runs on the graphics chip (WebGPU) or the processor (WASM). */
+async function start(providers: Providers): Promise<{ ocr: PaddleOcrService; fellBack: boolean }> {
   let fellBack = false;
-  service = new PaddleOcrService({
+  const ocr = new PaddleOcrService({
     model: {
       detection: `${modelsUrl}det.onnx`,
       recognition: `${modelsUrl}rec-latin.onnx`,
@@ -74,10 +98,63 @@ async function init(modelsUrl: string) {
       },
     },
   });
-  await service.initialize();
-  if (!applyTextThreshold(service)) console.warn('[ocr] could not apply the text threshold; closely printed lines may merge');
-  const backend = providers.includes('webgpu') && !fellBack ? 'webgpu' : 'wasm';
+  await ocr.initialize();
+  if (!applyTextThreshold(ocr)) console.warn('[ocr] could not apply the text threshold; closely printed lines may merge');
+  return { ocr, fellBack };
+}
+
+/**
+ * Whether the reader gets a printed test line right. Some phone graphics chips run the models but
+ * get the sums wrong, and then every receipt reads as nothing or as nonsense.
+ */
+async function readsTestLine(ocr: PaddleOcrService): Promise<boolean> {
+  try {
+    const canvas = new OffscreenCanvas(520, 96);
+    const ctx = context(canvas);
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#000';
+    ctx.font = 'bold 44px sans-serif';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('TOTAL 123.45', 24, 48);
+    const { text } = await ocr.recognize(canvas, { noCache: true });
+    return text.replace(/\s/g, '').includes('123.45');
+  } catch {
+    return false;
+  }
+}
+
+/** Leaves the graphics chip for the processor: slower, but it works on every phone. */
+async function useProcessor(reason: unknown) {
+  console.warn('[ocr] reading on the processor instead of the graphics chip:', reason);
+  const old = service;
+  service = null;
+  await old?.destroy().catch(() => {});
+  service = (await start(['wasm'])).ocr;
+  backend = 'wasm';
+}
+
+async function init(url: string) {
+  const started = performance.now();
+  modelsUrl = url;
+  // Self-hosted runtime instead of the library's jsDelivr default: no third-party requests.
+  ort.env.wasm.wasmPaths = { wasm: ortWasmUrl };
+  const providers = (await getDefaultWebExecutionProviders()) ?? ['wasm'];
+  const { ocr, fellBack } = await start(providers);
+  service = ocr;
+  backend = providers.includes('webgpu') && !fellBack ? 'webgpu' : 'wasm';
+  if (backend === 'webgpu' && !(await readsTestLine(ocr))) await useProcessor('the test line read wrong');
   post({ type: 'ready', backend, loadMs: Math.round(performance.now() - started) });
+}
+
+async function read(photo: OffscreenCanvas, msg: Extract<OcrRequest, { type: 'recognize' }>) {
+  const ocr = service;
+  if (!ocr) throw new Error('OCR models failed to load');
+  const engine: OcrEngine<OffscreenCanvas> = {
+    detect: (image, maxSideLength) => ocr.detect(image, { maxSideLength }),
+    recognize: (image, strategy) => ocr.recognize(image, { strategy, noCache: true }),
+  };
+  return readReceipt(engine, canvases, photo, msg.strategy, (step, done, next) => post({ type: 'progress', id: msg.id, step, done, next }));
 }
 
 scope.onmessage = async (event: MessageEvent<OcrRequest>) => {
@@ -92,18 +169,19 @@ scope.onmessage = async (event: MessageEvent<OcrRequest>) => {
   try {
     if (!ready) throw new Error('OCR worker used before init');
     await ready;
-    const ocr = service;
-    if (!ocr) throw new Error('OCR models failed to load');
-    const engine: OcrEngine<OffscreenCanvas> = {
-      detect: (image, maxSideLength) => ocr.detect(image, { maxSideLength }),
-      recognize: (image, strategy) => ocr.recognize(image, { strategy, noCache: true }),
-    };
     const started = performance.now();
     const photo = await toCanvas(msg.image);
-    const { lines, report } = await readReceipt(engine, canvases, photo, msg.strategy, (step, done, next) =>
-      post({ type: 'progress', id: msg.id, step, done, next }),
-    );
-    post({ type: 'result', id: msg.id, lines, ms: Math.round(performance.now() - started), report });
+    let result;
+    try {
+      result = await read(photo, msg);
+      // On a phone the graphics chip can drop out (the camera opening is enough) or misread everything.
+      if (backend === 'webgpu' && !result.lines.length) throw new Error('nothing read');
+    } catch (err) {
+      if (backend !== 'webgpu') throw err;
+      await useProcessor(err);
+      result = await read(photo, msg);
+    }
+    post({ type: 'result', id: msg.id, lines: result.lines, ms: Math.round(performance.now() - started), report: result.report });
   } catch (err) {
     post({ type: 'error', id: msg.id, message: err instanceof Error ? err.message : String(err) });
   }

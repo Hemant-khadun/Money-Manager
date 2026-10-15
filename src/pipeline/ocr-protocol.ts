@@ -2,6 +2,9 @@ import type { OcrLine } from '../parser/types';
 
 export type OcrStrategy = 'per-line' | 'per-box';
 
+/** Where the models run: the graphics chip (WebGPU) or the processor (WASM). */
+export type OcrBackend = 'webgpu' | 'wasm';
+
 export type OcrRequest =
   | {
       type: 'init';
@@ -32,7 +35,7 @@ export interface ReadReport {
 }
 
 export type OcrResponse =
-  | { type: 'ready'; backend: 'webgpu' | 'wasm'; loadMs: number }
+  | { type: 'ready'; backend: OcrBackend; loadMs: number }
   /** A plain-language step, shown while the receipt is being read; how far along it is as the step starts, and where the step ends (0..1). */
   | { type: 'progress'; id: number; step: string; done: number; next: number }
   | { type: 'result'; id: number; lines: OcrLine[]; ms: number; report: ReadReport }

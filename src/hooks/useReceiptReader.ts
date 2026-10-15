@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 import type { OcrLine, ParsedReceipt } from '../parser/types';
-import { OcrClient, type OcrEngineInfo } from '../pipeline/ocr-client';
+import { OcrClient, ReaderStopped, type OcrEngineInfo } from '../pipeline/ocr-client';
 import type { OcrStrategy, ReadReport } from '../pipeline/ocr-protocol';
 
 // Reading receipt photos, for the Scan screen and the reading test page. Photos are read one at a
@@ -33,6 +33,8 @@ export interface ReadScan {
   photos: Photo[];
   status: 'queued' | 'reading' | 'done' | 'error';
   error?: string;
+  /** Why it failed, in plain words, when that is known. */
+  problem?: string;
   strategy?: OcrStrategy;
   backend?: OcrEngineInfo['backend'];
   /** By photo id. */
@@ -120,7 +122,7 @@ export function useReceiptReader(options: ReaderOptions = {}) {
       const job = queue.current.shift()!;
       // The photos changed again since: the newer request covers this one.
       if (queue.current.some((j) => j.scanId === job.scanId)) continue;
-      update(job.scanId, () => ({ status: 'reading', error: undefined, step: undefined, progress: undefined }));
+      update(job.scanId, () => ({ status: 'reading', error: undefined, problem: undefined, step: undefined, progress: undefined }));
       try {
         const { backend } = await ocr.ready();
         for (const [k, photo] of job.photos.entries()) {
@@ -150,7 +152,13 @@ export function useReceiptReader(options: ReaderOptions = {}) {
         const batchId = batchOf.current.get(job.scanId);
         if (batchId !== undefined) await sortBatch(batchId);
       } catch (err) {
-        update(job.scanId, () => ({ status: 'error', step: undefined, progress: undefined, error: err instanceof Error ? err.message : String(err) }));
+        update(job.scanId, () => ({
+          status: 'error',
+          step: undefined,
+          progress: undefined,
+          error: err instanceof Error ? err.message : String(err),
+          problem: err instanceof ReaderStopped ? err.message : undefined,
+        }));
         await leaveBatch(job.scanId);
       }
     }

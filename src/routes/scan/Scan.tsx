@@ -15,7 +15,8 @@ function status(scan: ReadScan, ready: boolean): string {
   const photos = scan.photos.length > 1 ? `${scan.photos.length} photos · ` : '';
   if (scan.status === 'queued') return `${photos}Waiting its turn`;
   if (scan.status === 'reading') return `${scan.step ?? (ready ? 'Getting started' : 'Getting ready, the first time takes a moment')}…`;
-  if (scan.status === 'error') return "Couldn't read this photo";
+  if (scan.status === 'error') return scan.problem ?? "Couldn't read this photo";
+  if (!scan.lines?.length) return `${photos}Couldn't find any writing. Try a closer photo in good light`;
   const total = scan.parsed?.total;
   return `${photos}Ready to check${total ? ` · ${formatMoney(total)}` : ''}`;
 }
@@ -82,7 +83,7 @@ function ScanRow({ scan, ready, onOpen, onRetry, onRemove }: { scan: ReadScan; r
     <Row
       onClick={scan.status === 'done' ? onOpen : undefined}
       icon={<Thumb url={photosInOrder(scan)[0]?.url} reading={reading} />}
-      title={scan.parsed?.storeName ?? (scan.status === 'done' ? 'Receipt' : 'Reading…')}
+      title={scan.parsed?.storeName ?? (scan.status === 'done' || scan.status === 'error' ? 'Receipt' : 'Reading…')}
       subtitle={
         reading ? (
           <span className="animate-shimmer bg-[linear-gradient(90deg,var(--muted-foreground)_35%,var(--foreground)_50%,var(--muted-foreground)_65%)] bg-size-[200%_100%] bg-clip-text text-transparent">
@@ -238,7 +239,7 @@ export function Scan() {
       <p className="mt-3 flex items-start gap-2 px-1 text-footnote text-muted-foreground" role="status">
         <ShieldCheck aria-hidden className="mt-px size-4 shrink-0" strokeWidth={2} />
         {engineError
-          ? `The receipt reader couldn't start: ${engineError}`
+          ? "The receipt reader couldn't start. Check your internet connection, then reload the page."
           : engine
             ? 'Photos are read on this phone. Nothing is sent anywhere.'
             : 'Getting the receipt reader ready… the first time takes a moment.'}
