@@ -4,6 +4,7 @@ import { useApp } from '../../app/AppContext';
 import { Page } from '../../components/Page';
 import { Group, Row, buttonBase, buttonKinds } from '../../components/primitives';
 import { photosInOrder, type ReadScan } from '../../hooks/useReceiptReader';
+import { debugLog } from '../../lib/debug-log';
 import { formatMoney } from '../../lib/format';
 import { ReviewSheet } from './ReviewSheet';
 
@@ -169,6 +170,7 @@ export function Scan() {
       multiple={multiple}
       capture={capture ? 'environment' : undefined}
       className="sr-only"
+      onClick={() => debugLog('app', `Opened the ${capture ? 'camera' : 'photo picker'}`)}
       onChange={(e) => {
         justChosen.current = reader.add(e.target.files).length > 0;
         e.target.value = '';

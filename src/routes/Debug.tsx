@@ -4,7 +4,7 @@ import { Page } from '../components/Page';
 import { Group, Row, buttonBase, buttonKinds } from '../components/primitives';
 import { useToast } from '../components/Toast';
 import { useReceiptReader, type ReadScan } from '../hooks/useReceiptReader';
-import { clearDebugLog, debugLogEntries, subscribeDebugLog, type LogEntry } from '../lib/debug-log';
+import { clearDebugLog, debugLog, debugLogEntries, subscribeDebugLog, type LogEntry } from '../lib/debug-log';
 import { describeError } from '../lib/describe-error';
 import { formatMoney } from '../lib/format';
 import type { OcrEngineInfo } from '../pipeline/ocr-client';
@@ -142,6 +142,7 @@ export function Debug() {
       accept="image/*"
       capture={capture ? 'environment' : undefined}
       className="sr-only"
+      onClick={() => debugLog('app', `Opened the ${capture ? 'camera' : 'photo picker'}`)}
       onChange={(e) => {
         reader.add(e.target.files);
         e.target.value = '';

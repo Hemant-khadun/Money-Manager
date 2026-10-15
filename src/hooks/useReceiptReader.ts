@@ -218,7 +218,10 @@ export function useReceiptReader(options: ReaderOptions = {}) {
 
   /** New photos: each starts as its own receipt; photos added together are sorted once read. Returns their ids. */
   function add(files: FileList | File[] | null): number[] {
-    if (!files?.length) return [];
+    if (!files?.length) {
+      debugLog('app', 'No photo came back from the picker');
+      return [];
+    }
     for (const file of files) debugLog('app', `Photo chosen: ${(file.size / 1e6).toFixed(1)} MB, ${file.type || 'unknown type'}`);
     const added = toPhotos(files).map((photo): ReadScan => ({ id: nextId++, photos: [photo], status: 'queued' }));
     if (added.length > 1) {
