@@ -38,6 +38,9 @@ export interface OcrEngine<C> {
 const FIRST_LOOK_MAX = 1920;
 /** A part's own tilt may differ this much from the whole receipt's (curled paper), no more. */
 const MAX_LOCAL_TURN = 8;
+/** Where the stages start on the progress bar (0..1): the first look is quick, reading the parts takes the longest. */
+const READING_STARTS = 0.1;
+const CLOSER_LOOKS_START = 0.8;
 /** Closer looks never enlarge the original photo more than this. */
 const MAX_TOTAL_ZOOM = 4;
 /** Tilt is measured on a small copy of the receipt where detected text boxes are about this tall… */
@@ -105,9 +108,10 @@ export async function readReceipt<C extends Surface>(
   canvases: Canvases<C>,
   photo: C,
   strategy: OcrStrategy,
-  onStep: (step: string) => void = () => {},
+  /** A plain-language step, how far along the reading is as it starts, and where it ends (0..1). */
+  onStep: (step: string, done: number, next: number) => void = () => {},
 ): Promise<{ lines: OcrLine[]; report: ReadReport }> {
-  onStep('Looking at the photo');
+  onStep('Looking at the photo', 0, READING_STARTS);
   const { boxes } = await engine.detect(photo, FIRST_LOOK_MAX);
   const found = findReceipt(boxes, photo.width, photo.height);
   const report: ReadReport = {
@@ -150,11 +154,12 @@ export async function readReceipt<C extends Surface>(
   const maxPart = Math.max(PART_MAX / 2, Math.floor((PART_MAX - receiptWidth * sin) / Math.cos(rad(tilt))));
   const parts = planParts(viewHeight, lineHeight * zoom, maxPart);
   report.parts = parts.length;
+  const partDone = (i: number) => READING_STARTS + ((CLOSER_LOOKS_START - READING_STARTS) * i) / parts.length;
 
   const views: PartView[] = [];
   const lines: ReadLine[] = [];
   for (const [i, part] of parts.entries()) {
-    onStep(parts.length > 1 ? `Reading part ${i + 1} of ${parts.length}` : 'Reading the receipt');
+    onStep(parts.length > 1 ? `Reading part ${i + 1} of ${parts.length}` : 'Reading the receipt', partDone(i), partDone(i + 1));
     // This part's own tilt (paper curls), from its own print (or the first look's boxes inside it).
     const partBoxes = receiptBoxes.filter((b) => {
       const y = apply(toView, ...centreOf(b))[1];
@@ -192,9 +197,10 @@ export async function readReceipt<C extends Surface>(
   // Lines it wasn't sure about: look again, closer, from the original photo.
   const unclear = unclearLines(lines.map((l) => l.words));
   report.closerLooks = unclear.length;
+  const lookDone = (n: number) => CLOSER_LOOKS_START + ((1 - CLOSER_LOOKS_START) * n) / unclear.length;
   const reread = new Set<ReadLine>();
   for (const [n, index] of unclear.entries()) {
-    onStep(`Taking a closer look at unclear lines (${n + 1} of ${unclear.length})`);
+    onStep(`Taking a closer look at unclear lines (${n + 1} of ${unclear.length})`, lookDone(n), lookDone(n + 1));
     const line = lines[index];
     const clearer = await closerLook(engine, canvases, photo, views[line.part], line.words, zoom, strategy);
     if (clearer) {

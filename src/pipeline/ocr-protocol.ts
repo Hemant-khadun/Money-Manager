@@ -33,7 +33,7 @@ export interface ReadReport {
 
 export type OcrResponse =
   | { type: 'ready'; backend: 'webgpu' | 'wasm'; loadMs: number }
-  /** A plain-language step, shown while the receipt is being read. */
-  | { type: 'progress'; id: number; step: string }
+  /** A plain-language step, shown while the receipt is being read; how far along it is as the step starts, and where the step ends (0..1). */
+  | { type: 'progress'; id: number; step: string; done: number; next: number }
   | { type: 'result'; id: number; lines: OcrLine[]; ms: number; report: ReadReport }
   | { type: 'error'; id: number | null; message: string };

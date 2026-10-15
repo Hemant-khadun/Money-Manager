@@ -47,6 +47,8 @@ export interface ReadScan {
   ms?: number;
   /** What the reader is doing right now ("Photo 2 of 3: Reading part 1 of 2"). */
   step?: string;
+  /** How far along reading all its photos is, and where the current step ends (0..1). Unset until the first step starts. */
+  progress?: { done: number; next: number };
   parsed?: ParsedReceipt;
   /** Photos added together were found to continue each other and joined into this one receipt. */
   joinedAutomatically?: boolean;
@@ -118,13 +120,15 @@ export function useReceiptReader(options: ReaderOptions = {}) {
       const job = queue.current.shift()!;
       // The photos changed again since: the newer request covers this one.
       if (queue.current.some((j) => j.scanId === job.scanId)) continue;
-      update(job.scanId, () => ({ status: 'reading', error: undefined, step: undefined }));
+      update(job.scanId, () => ({ status: 'reading', error: undefined, step: undefined, progress: undefined }));
       try {
         const { backend } = await ocr.ready();
         for (const [k, photo] of job.photos.entries()) {
           if (cache.current.get(photo.id)?.strategy === job.strategy) continue;
           const prefix = job.photos.length > 1 ? `Photo ${k + 1} of ${job.photos.length}: ` : '';
-          const run = await ocr.recognize(photo.file, job.strategy, (step) => update(job.scanId, () => ({ step: prefix + step })));
+          const run = await ocr.recognize(photo.file, job.strategy, (step, done, next) =>
+            update(job.scanId, () => ({ step: prefix + step, progress: { done: (k + done) / job.photos.length, next: (k + next) / job.photos.length } })),
+          );
           cache.current.set(photo.id, { strategy: job.strategy, lines: run.lines, report: run.report, ms: run.ms });
         }
         const { parseReceipt, stitchPhotos } = await tools();
@@ -133,6 +137,7 @@ export function useReceiptReader(options: ReaderOptions = {}) {
         update(job.scanId, () => ({
           status: 'done',
           step: undefined,
+          progress: undefined,
           strategy: job.strategy,
           backend,
           readings: Object.fromEntries(job.photos.map((p, i) => [p.id, readings[i]])),
@@ -145,7 +150,7 @@ export function useReceiptReader(options: ReaderOptions = {}) {
         const batchId = batchOf.current.get(job.scanId);
         if (batchId !== undefined) await sortBatch(batchId);
       } catch (err) {
-        update(job.scanId, () => ({ status: 'error', step: undefined, error: err instanceof Error ? err.message : String(err) }));
+        update(job.scanId, () => ({ status: 'error', step: undefined, progress: undefined, error: err instanceof Error ? err.message : String(err) }));
         await leaveBatch(job.scanId);
       }
     }

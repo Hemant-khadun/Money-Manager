@@ -100,8 +100,8 @@ scope.onmessage = async (event: MessageEvent<OcrRequest>) => {
     };
     const started = performance.now();
     const photo = await toCanvas(msg.image);
-    const { lines, report } = await readReceipt(engine, canvases, photo, msg.strategy, (step) =>
-      post({ type: 'progress', id: msg.id, step }),
+    const { lines, report } = await readReceipt(engine, canvases, photo, msg.strategy, (step, done, next) =>
+      post({ type: 'progress', id: msg.id, step, done, next }),
     );
     post({ type: 'result', id: msg.id, lines, ms: Math.round(performance.now() - started), report });
   } catch (err) {

@@ -15,7 +15,7 @@ export interface OcrRun {
 interface Pending {
   resolve: (r: OcrRun) => void;
   reject: (e: Error) => void;
-  onStep?: (step: string) => void;
+  onStep?: (step: string, done: number, next: number) => void;
 }
 
 /** Promise wrapper around the OCR worker. One worker, created on first use, models loaded once. */
@@ -33,7 +33,7 @@ export class OcrClient {
       worker.onmessage = (event: MessageEvent<OcrResponse>) => {
         const msg = event.data;
         if (msg.type === 'ready') resolve({ backend: msg.backend, loadMs: msg.loadMs });
-        else if (msg.type === 'progress') this.pending.get(msg.id)?.onStep?.(msg.step);
+        else if (msg.type === 'progress') this.pending.get(msg.id)?.onStep?.(msg.step, msg.done, msg.next);
         else if (msg.type === 'result') this.settle(msg.id)?.resolve({ lines: msg.lines, ms: msg.ms, report: msg.report });
         else if (msg.id === null) {
           this.readyPromise = null;
@@ -49,8 +49,8 @@ export class OcrClient {
     return this.readyPromise;
   }
 
-  /** Reads one receipt photo. `onStep` receives plain-language progress ("Reading part 2 of 3"). */
-  async recognize(image: Blob, strategy: OcrStrategy = 'per-box', onStep?: (step: string) => void): Promise<OcrRun> {
+  /** Reads one receipt photo. `onStep` receives plain-language progress ("Reading part 2 of 3") and how far along it is (0..1). */
+  async recognize(image: Blob, strategy: OcrStrategy = 'per-box', onStep?: (step: string, done: number, next: number) => void): Promise<OcrRun> {
     await this.ready();
     const bytes = await image.arrayBuffer();
     const id = this.nextId++;

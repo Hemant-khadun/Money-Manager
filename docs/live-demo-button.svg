@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="340" height="68" viewBox="0 0 340 68" role="img" aria-label="Open the live demo">
+  <defs>
+    <linearGradient id="fill" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7a6cf7"/>
+      <stop offset="1" stop-color="#5b4cf0"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="336" height="64" rx="32" fill="url(#fill)"/>
+  <rect x="2.5" y="2.5" width="335" height="63" rx="31.5" fill="none" stroke="#ffffff" stroke-opacity="0.25"/>
+  <circle cx="38" cy="34" r="20" fill="#ffffff"/>
+  <path d="M33 24.5 L46 34 L33 43.5 Z" fill="#5b4cf0"/>
+  <text x="194" y="41.5" text-anchor="middle" fill="#ffffff" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="22" font-weight="700">Open the live demo</text>
+</svg>

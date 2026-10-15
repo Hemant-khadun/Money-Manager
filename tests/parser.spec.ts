@@ -484,3 +484,33 @@ describe('store matching', () => {
     expect(matchStore({ name: 'Pharmacie Nouvelle', taxId: null }, stores)).toBeNull();
   });
 });
+
+describe('known supermarket chains', () => {
+  const name = (receipt: string) => parseReceipt(ocr(receipt), { today: TODAY }).storeName;
+  const rest = `
+    08/10/2026 14:32
+    LAIT UHT 1L     45.00
+    TOTAL           45.00
+  `;
+
+  it('spells a misread chain name properly', () => {
+    expect(name(`# W1NNERS\n${rest}`)).toBe('Winners');
+    expect(name(`# WIN NERS\n${rest}`)).toBe('Winners');
+    expect(name(`# CARREF0UR\n${rest}`)).toBe('Carrefour');
+    expect(name(`# lNTERMAR\n${rest}`)).toBe('Intermart');
+    expect(name(`# SUP3R V FLAC\n${rest}`)).toBe('Super U');
+  });
+  it('finds the chain on another top line, or in its web address, when the name line is something else', () => {
+    expect(name(`# TAYLOR SMITH RETAIL LTD\nWINNERS GRAND BAIE\n${rest}`)).toBe('Winners');
+    expect(name(`# BEAU PLAN RETAIL LTD\n${rest}\nwww.winners.mu`)).toBe('Winners');
+  });
+  it('keeps a name that reads right, branch and all', () => {
+    expect(name(`# SUPER U FLACQ\n${rest}`)).toBe('Super U Flacq');
+  });
+  it('leaves other shops alone', () => {
+    expect(name(`# ANAND SUPER MARKET\n${rest}`)).toBe('Anand Super Market');
+    expect(name(`# SPARKLE CLEANERS\n${rest}`)).toBe('Sparkle Cleaners');
+    // A shop inside a supermarket's mall prints the supermarket in its address.
+    expect(name(`# PHARMACIE DU CENTRE\nSuper U Complex, Grand Baie\n${rest}`)).toBe('Pharmacie Du Centre');
+  });
+});

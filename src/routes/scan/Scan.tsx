@@ -1,5 +1,5 @@
 import { Camera, Images, Layers, PenLine, ShieldCheck } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useApp } from '../../app/AppContext';
 import { Page } from '../../components/Page';
 import { Group, Row, buttonBase, buttonKinds } from '../../components/primitives';
@@ -8,14 +8,109 @@ import { formatMoney } from '../../lib/format';
 import { ReviewSheet } from './ReviewSheet';
 
 // Scan: take or pick photos, watch them being read, then check each receipt and save it.
+// Receipts being read sit at the top of the screen, so a photo chosen on a phone shows up where
+// the person is looking, not below the fold.
 
-function status(scan: ReadScan): string {
+function status(scan: ReadScan, ready: boolean): string {
   const photos = scan.photos.length > 1 ? `${scan.photos.length} photos · ` : '';
   if (scan.status === 'queued') return `${photos}Waiting its turn`;
-  if (scan.status === 'reading') return `${scan.step ?? 'Getting started'}…`;
+  if (scan.status === 'reading') return `${scan.step ?? (ready ? 'Getting started' : 'Getting ready, the first time takes a moment')}…`;
   if (scan.status === 'error') return "Couldn't read this photo";
   const total = scan.parsed?.total;
   return `${photos}Ready to check${total ? ` · ${formatMoney(total)}` : ''}`;
+}
+
+/** How far along reading a receipt is. Until the first step reports in, a bar that keeps moving. */
+function ReadingBar({ percent }: { percent?: number }) {
+  return (
+    <div
+      role="progressbar"
+      aria-label="Reading the receipt"
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={percent}
+      className="mt-2 h-1.5 overflow-hidden rounded-full bg-primary/15"
+    >
+      {percent === undefined ? (
+        <div className="h-full w-1/3 animate-slide rounded-full bg-primary" />
+      ) : (
+        <div className="h-full rounded-full bg-primary transition-[width] duration-300 ease-linear" style={{ width: `${Math.max(percent, 4)}%` }} />
+      )}
+    </div>
+  );
+}
+
+/** The receipt's photo. While it is being read, a light sweeps down it. */
+function Thumb({ url, reading }: { url?: string; reading: boolean }) {
+  return (
+    <div className="relative size-12 shrink-0 overflow-hidden rounded-xl border border-border">
+      <img src={url} alt="" className="size-full object-cover" />
+      {reading && (
+        <div aria-hidden className="absolute inset-x-0 top-0 animate-sweep [--sweep:44px]">
+          <div className="h-0.5 bg-primary shadow-[0_0_8px_2px_var(--primary)]" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Moves from `done` towards `next` while a step runs: the reader can't say how far into a step it
+ * is, and a bar that stands still for a long step looks stuck. Slows down and stops short of `next`.
+ */
+function useCreep(progress: ReadScan['progress']): number | undefined {
+  const [value, setValue] = useState(progress?.done);
+  const done = progress?.done;
+  const next = progress?.next;
+  useEffect(() => {
+    setValue(done);
+    if (done === undefined || next === undefined) return;
+    const start = Date.now();
+    const timer = setInterval(() => setValue(done + (next - done) * 0.9 * (1 - Math.exp(-(Date.now() - start) / 8000))), 250);
+    return () => clearInterval(timer);
+  }, [done, next]);
+  return value;
+}
+
+/** One receipt in the list: being read (with how far along), ready to check, or failed. */
+function ScanRow({ scan, ready, onOpen, onRetry, onRemove }: { scan: ReadScan; ready: boolean; onOpen: () => void; onRetry: () => void; onRemove: () => void }) {
+  const reading = scan.status === 'reading';
+  const creep = useCreep(reading ? scan.progress : undefined);
+  const percent = reading && creep !== undefined ? Math.round(creep * 100) : undefined;
+  const words = status(scan, ready);
+  return (
+    <Row
+      onClick={scan.status === 'done' ? onOpen : undefined}
+      icon={<Thumb url={photosInOrder(scan)[0]?.url} reading={reading} />}
+      title={scan.parsed?.storeName ?? (scan.status === 'done' ? 'Receipt' : 'Reading…')}
+      subtitle={
+        reading ? (
+          <span className="animate-shimmer bg-[linear-gradient(90deg,var(--muted-foreground)_35%,var(--foreground)_50%,var(--muted-foreground)_65%)] bg-size-[200%_100%] bg-clip-text text-transparent">
+            {words}
+          </span>
+        ) : (
+          words
+        )
+      }
+      below={reading && <ReadingBar percent={percent} />}
+      value={
+        percent !== undefined ? (
+          <span className="text-subhead text-muted-foreground">{percent}%</span>
+        ) : scan.status === 'done' ? (
+          <span className="rounded-full bg-primary px-3 py-1.5 text-footnote font-semibold text-primary-foreground">Check</span>
+        ) : scan.status === 'error' ? (
+          <span className="flex gap-3 text-subhead">
+            <button type="button" className="min-h-11 text-primary" onClick={onRetry}>
+              Try again
+            </button>
+            <button type="button" className="min-h-11 text-bad" onClick={onRemove}>
+              Remove
+            </button>
+          </span>
+        ) : undefined
+      }
+    />
+  );
 }
 
 // The two quieter ways in, as small tiles: icon above the words, so both fit side by side.
@@ -52,9 +147,19 @@ export function Scan() {
   const [openId, setOpenId] = useState<number | null>(null);
   const { engine, engineError, warmUp, scans } = reader;
   const open = scans.find((s) => s.id === openId && s.status === 'done') ?? null;
+  const busy = scans.length > 0;
+  const list = useRef<HTMLDivElement>(null);
+  const justChosen = useRef(false);
 
   // Start the reader as soon as the person is here: the first photo then reads without waiting.
   useEffect(warmUp, [warmUp]);
+
+  // Photos just chosen: make sure their row is on screen, even if the page was scrolled down.
+  useEffect(() => {
+    if (!justChosen.current) return;
+    justChosen.current = false;
+    list.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, [scans.length]);
 
   const picker = (multiple: boolean, capture: boolean) => (
     <input
@@ -64,7 +169,7 @@ export function Scan() {
       capture={capture ? 'environment' : undefined}
       className="sr-only"
       onChange={(e) => {
-        reader.add(e.target.files);
+        justChosen.current = reader.add(e.target.files).length > 0;
         e.target.value = '';
       }}
     />
@@ -72,11 +177,36 @@ export function Scan() {
 
   return (
     <Page title="Scan" glow>
-      <div className="panel relative mt-3 overflow-hidden px-5 pb-5 pt-6">
+      {busy && (
+        <div ref={list} className="scroll-mt-16">
+          <Group title="Receipts">
+            {scans.map((scan) => (
+              <ScanRow
+                key={scan.id}
+                scan={scan}
+                ready={!!engine}
+                onOpen={() => setOpenId(scan.id)}
+                onRetry={() => reader.reread(scan.id)}
+                onRemove={() => reader.remove(scan.id)}
+              />
+            ))}
+          </Group>
+        </div>
+      )}
+
+      <div className={`panel relative overflow-hidden px-5 pb-5 ${busy ? 'mt-6 pt-5' : 'mt-3 pt-6'}`}>
         <div aria-hidden className="dot-grid absolute inset-0" />
-        <ScanPicture />
-        <p className="relative mt-5 text-center text-headline">Snap a receipt</p>
-        <p className="relative mx-auto mt-1 max-w-72 text-center text-subhead text-muted-foreground">Spent finds the shop, the date, the total and each thing you bought.</p>
+        {busy ? (
+          <p className="relative text-center text-headline">Another receipt?</p>
+        ) : (
+          <>
+            <ScanPicture />
+            <p className="relative mt-5 text-center text-headline">Snap a receipt</p>
+            <p className="relative mx-auto mt-1 max-w-72 text-center text-subhead text-muted-foreground">
+              Spent finds the shop, the date, the total and each thing you bought.
+            </p>
+          </>
+        )}
         <label className={`${buttonBase} ${buttonKinds.primary} relative mt-5 min-h-14 cursor-pointer text-headline`}>
           <Camera aria-hidden className="size-6" strokeWidth={1.9} />
           Take a photo
@@ -113,46 +243,6 @@ export function Scan() {
             ? 'Photos are read on this phone. Nothing is sent anywhere.'
             : 'Getting the receipt reader ready… the first time takes a moment.'}
       </p>
-
-      {scans.length > 0 && (
-        <Group title="Receipts">
-          {scans.map((scan) => {
-            const top = photosInOrder(scan)[0];
-            const words = status(scan);
-            return (
-              <Row
-                key={scan.id}
-                onClick={scan.status === 'done' ? () => setOpenId(scan.id) : undefined}
-                icon={<img src={top?.url} alt="" className="size-12 shrink-0 rounded-xl border border-border object-cover" />}
-                title={scan.parsed?.storeName ?? (scan.status === 'done' ? 'Receipt' : 'Reading…')}
-                subtitle={
-                  scan.status === 'reading' ? (
-                    <span className="animate-shimmer bg-[linear-gradient(90deg,var(--muted-foreground)_35%,var(--foreground)_50%,var(--muted-foreground)_65%)] bg-size-[200%_100%] bg-clip-text text-transparent">
-                      {words}
-                    </span>
-                  ) : (
-                    words
-                  )
-                }
-                value={
-                  scan.status === 'done' ? (
-                    <span className="rounded-full bg-primary px-3 py-1.5 text-footnote font-semibold text-primary-foreground">Check</span>
-                  ) : scan.status === 'error' ? (
-                    <span className="flex gap-3 text-subhead">
-                      <button type="button" className="min-h-11 text-primary" onClick={() => reader.reread(scan.id)}>
-                        Try again
-                      </button>
-                      <button type="button" className="min-h-11 text-bad" onClick={() => reader.remove(scan.id)}>
-                        Remove
-                      </button>
-                    </span>
-                  ) : undefined
-                }
-              />
-            );
-          })}
-        </Group>
-      )}
 
       <ReviewSheet
         scan={open}

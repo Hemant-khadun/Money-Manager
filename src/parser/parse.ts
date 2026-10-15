@@ -11,6 +11,7 @@ import {
   type Line,
 } from './essentials';
 import { ITEMS_TOLERANCE, itemsAddUp, parseItems, sumItems } from './items';
+import { knownShopName } from './known-shops';
 import { fixCurrency, fixDigits, normalizeText } from './text';
 import type { OcrLine, ParsedItem, ParsedReceipt, ParseWarning, StoreHints } from './types';
 
@@ -47,7 +48,9 @@ export function parseReceipt(ocr: OcrLine[], options: ParseOptions = {}): Parsed
   const lines = prepareLines(ocr);
   const today = options.today ?? todayIso();
 
-  const store = findStoreName(lines);
+  const nameLine = findStoreName(lines);
+  // A misread big chain ("W1NNERS") gets its proper name.
+  const store = knownShopName(lines, nameLine) ?? nameLine;
   const date = findDate(lines, options.hints, today);
   const total = findTotal(lines, options.hints);
   const vatTotal = findVatTotal(lines, total.total);
