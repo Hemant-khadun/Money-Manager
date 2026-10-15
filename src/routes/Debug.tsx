@@ -7,6 +7,7 @@ import { useReceiptReader, type ReadScan } from '../hooks/useReceiptReader';
 import { clearDebugLog, debugLog, debugLogEntries, subscribeDebugLog, type LogEntry } from '../lib/debug-log';
 import { describeError } from '../lib/describe-error';
 import { formatMoney } from '../lib/format';
+import { careLevel, resetCareLevel } from '../pipeline/care';
 import type { OcrEngineInfo } from '../pipeline/ocr-client';
 
 // The problem report (#/debug): what this phone can do, photos read here with every detail, and
@@ -87,6 +88,7 @@ function buildReport(facts: Facts, reader: string, scans: ReadScan[], log: reado
     '',
     ...facts.map(([label, value]) => `${label}: ${value}`),
     `Receipt reader: ${reader}`,
+    `Reading mode: level ${careLevel()} of 2 (higher is gentler on memory)`,
     ...[...scans].reverse().flatMap((scan, i) => ['', ...photoDetails(scan, i + 1)]),
     '',
     `Log, oldest first (${log.length} entries):`,
@@ -171,7 +173,10 @@ export function Debug() {
       </div>
 
       <Group title="Receipt reader">
-        <Row title={engineError ? "Couldn't start" : engine ? 'Ready' : 'Starting…'} subtitle={readerState(engine, engineError)} />
+        <Row
+          title={engineError ? "Couldn't start" : engine ? 'Ready' : 'Starting…'}
+          subtitle={`${readerState(engine, engineError)}. Reading mode ${careLevel()} of 2.`}
+        />
         {scans.map((scan, i) => (
           <Row key={scan.id} title={`Photo ${scans.length - i}`} subtitle={status(scan)} />
         ))}
@@ -211,6 +216,16 @@ export function Debug() {
       >
         <Trash2 aria-hidden className="size-4" strokeWidth={2} />
         Clear the log
+      </button>
+      <button
+        type="button"
+        className={`${buttonBase} ${buttonKinds.plain} mx-auto`}
+        onClick={() => {
+          resetCareLevel();
+          toast('Reading mode reset. Reload the page to use it');
+        }}
+      >
+        Reset the reading mode
       </button>
     </Page>
   );

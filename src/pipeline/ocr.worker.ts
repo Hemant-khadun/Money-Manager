@@ -3,11 +3,10 @@ import * as ort from 'onnxruntime-web';
 import ortWasmUrl from 'onnxruntime-web/ort-wasm-simd-threaded.jsep.wasm?url';
 import { PaddleOcrService, getDefaultWebExecutionProviders } from 'ppu-paddle-ocr/web';
 import { describeError } from '../lib/describe-error';
-import type { OcrBackend, OcrRequest, OcrResponse } from './ocr-protocol';
+import type { CareLevel, OcrBackend, OcrRequest, OcrResponse } from './ocr-protocol';
 import { applyTextThreshold } from './ocr-tuning';
-import { ORIENTATION_TEST_JPEG, jpegOrientation, shrinkFor, uprightFrame } from './photo';
-import { readReceipt, type Canvases, type OcrEngine } from './read-receipt';
-import { PART_MAX } from './reading-plan';
+import { MAX_PIXELS, ORIENTATION_TEST_JPEG, jpegOrientation, shrinkFor, uprightFrame } from './photo';
+import { FULL_SIZES, readReceipt, type Canvases, type OcrEngine, type ReadingSizes } from './read-receipt';
 
 // Runs PP-OCRv5 off the main thread so the UI never freezes during a scan.
 // The project compiles against the DOM lib; seen from inside, a dedicated worker's scope has a Worker's shape.
@@ -79,7 +78,7 @@ async function toCanvas(bytes: ArrayBuffer): Promise<OffscreenCanvas> {
   try {
     // Phones save most photos sideways, marked "turn right to view"; turn it here if the browser didn't.
     const orientation = (await turnsPhotos) ? 1 : jpegOrientation(bytes);
-    const frame = uprightFrame(orientation, bitmap.width, bitmap.height, shrinkFor(bitmap.width, bitmap.height));
+    const frame = uprightFrame(orientation, bitmap.width, bitmap.height, shrinkFor(bitmap.width, bitmap.height, SIZES[care].maxPixels));
     const canvas = new OffscreenCanvas(frame.width, frame.height);
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
     if (!ctx) throw new Error(`Couldn't make a ${frame.width} × ${frame.height} canvas`);
@@ -103,6 +102,14 @@ type Providers = NonNullable<Awaited<ReturnType<typeof getDefaultWebExecutionPro
 let modelsUrl = '';
 let backend: OcrBackend = 'wasm';
 
+/** Image sizes for each level of care (care.ts): smaller ones use less memory. */
+const SIZES: Record<CareLevel, ReadingSizes & { maxPixels: number }> = {
+  0: { ...FULL_SIZES, maxPixels: MAX_PIXELS },
+  1: { firstLook: 1280, partMax: FULL_SIZES.partMax, maxPixels: MAX_PIXELS },
+  2: { firstLook: 960, partMax: 960, maxPixels: 8_000_000 },
+};
+let care: CareLevel = 0;
+
 /** Loads the models into a reader that runs on the graphics chip (WebGPU) or the processor (WASM). */
 async function start(providers: Providers): Promise<{ ocr: PaddleOcrService; fellBack: boolean }> {
   let fellBack = false;
@@ -112,9 +119,9 @@ async function start(providers: Providers): Promise<{ ocr: PaddleOcrService; fel
       recognition: `${modelsUrl}rec-latin.onnx`,
       charactersDictionary: `${modelsUrl}dict-latin.txt`,
     },
-    // Parts are at most PART_MAX on their longest side and are read at full detail.
+    // Parts are at most partMax on their longest side and are read at full detail.
     // (The library's "auto" default would shrink anything over ~960 px.)
-    detection: { maxSideLength: PART_MAX },
+    detection: { maxSideLength: SIZES[care].partMax },
     session: {
       executionProviders: providers,
       graphOptimizationLevel: 'all',
@@ -166,13 +173,16 @@ async function useProcessor(reason: unknown) {
   backend = 'wasm';
 }
 
-async function init(url: string) {
+async function init(url: string, level: CareLevel) {
   const started = performance.now();
   modelsUrl = url;
+  care = level;
   note(`Reader starting. ${await graphicsChip()}; ${navigator.hardwareConcurrency ?? '?'} cores`);
   // Self-hosted runtime instead of the library's jsDelivr default: no third-party requests.
   ort.env.wasm.wasmPaths = { wasm: ortWasmUrl };
-  const providers = (await getDefaultWebExecutionProviders()) ?? ['wasm'];
+  // From level 1 on, the processor only: the graphics chip is what runs out of memory on iPhones.
+  const providers: Providers = care === 0 ? ((await getDefaultWebExecutionProviders()) ?? ['wasm']) : ['wasm'];
+  note(`Reading mode: level ${care} (first look ${SIZES[care].firstLook} px, parts ${SIZES[care].partMax} px, photos up to ${SIZES[care].maxPixels / 1e6} MP)`);
   const { ocr, fellBack } = await start(providers);
   service = ocr;
   backend = providers.includes('webgpu') && !fellBack ? 'webgpu' : 'wasm';
@@ -187,13 +197,13 @@ async function read(photo: OffscreenCanvas, msg: Extract<OcrRequest, { type: 're
     detect: (image, maxSideLength) => ocr.detect(image, { maxSideLength }),
     recognize: (image, strategy) => ocr.recognize(image, { strategy, noCache: true }),
   };
-  return readReceipt(engine, canvases, photo, msg.strategy, (step, done, next) => post({ type: 'progress', id: msg.id, step, done, next }));
+  return readReceipt(engine, canvases, photo, msg.strategy, (step, done, next) => post({ type: 'progress', id: msg.id, step, done, next }), SIZES[care]);
 }
 
 scope.onmessage = async (event: MessageEvent<OcrRequest>) => {
   const msg = event.data;
   if (msg.type === 'init') {
-    ready ??= init(msg.modelsUrl).catch((err: unknown) => {
+    ready ??= init(msg.modelsUrl, msg.care).catch((err: unknown) => {
       note(`Reader couldn't start: ${describeError(err)}`);
       ready = null;
       post({ type: 'error', id: null, message: err instanceof Error ? err.message : String(err) });

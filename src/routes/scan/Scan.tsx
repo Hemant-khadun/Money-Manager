@@ -4,6 +4,7 @@ import { useApp } from '../../app/AppContext';
 import { Page } from '../../components/Page';
 import { Group, Row, buttonBase, buttonKinds } from '../../components/primitives';
 import { photosInOrder, type ReadScan } from '../../hooks/useReceiptReader';
+import { restartedWhileReading } from '../../pipeline/care';
 import { debugLog } from '../../lib/debug-log';
 import { formatMoney } from '../../lib/format';
 import { ReviewSheet } from './ReviewSheet';
@@ -180,6 +181,12 @@ export function Scan() {
 
   return (
     <Page title="Scan" glow>
+      {!busy && restartedWhileReading() && (
+        <p className="panel mt-3 p-4 text-subhead" role="status">
+          Spent had to start again while reading your last photo, probably because the phone ran short of memory. It now reads more gently, which takes
+          a little longer. Please add the photo again.
+        </p>
+      )}
       {busy && (
         <div ref={list} className="scroll-mt-16">
           <Group title="Receipts">

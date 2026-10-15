@@ -36,6 +36,16 @@ export interface OcrEngine<C> {
 
 /** The first look runs at this size: enough to find the receipt and measure its writing. */
 const FIRST_LOOK_MAX = 1920;
+
+/** How big the images the reader works on may be. Smaller uses less memory (phones), and is slower. */
+export interface ReadingSizes {
+  /** Longest side of the first look at the whole photo. */
+  firstLook: number;
+  /** Longest side of one part. The detector must be configured to work at full detail up to this size. */
+  partMax: number;
+}
+
+export const FULL_SIZES: ReadingSizes = { firstLook: FIRST_LOOK_MAX, partMax: PART_MAX };
 /** A part's own tilt may differ this much from the whole receipt's (curled paper), no more. */
 const MAX_LOCAL_TURN = 8;
 /** Where the stages start on the progress bar (0..1): the first look is quick, reading the parts takes the longest. */
@@ -110,9 +120,10 @@ export async function readReceipt<C extends Surface>(
   strategy: OcrStrategy,
   /** A plain-language step, how far along the reading is as it starts, and where it ends (0..1). */
   onStep: (step: string, done: number, next: number) => void = () => {},
+  sizes: ReadingSizes = FULL_SIZES,
 ): Promise<{ lines: OcrLine[]; report: ReadReport }> {
   onStep('Looking at the photo', 0, READING_STARTS);
-  const { boxes } = await engine.detect(photo, FIRST_LOOK_MAX);
+  const { boxes } = await engine.detect(photo, sizes.firstLook);
   const found = findReceipt(boxes, photo.width, photo.height);
   const report: ReadReport = {
     photoWidth: photo.width,
@@ -139,7 +150,7 @@ export async function readReceipt<C extends Surface>(
   // Zoom for the writing, limited by how wide the receipt is once straightened
   // (not by the photo, and not by the slant of a tilted receipt).
   const level = extent(receiptBoxes, rotate(tilt));
-  const zoom = zoomFor(lineHeight, level.x1 - level.x0 + margin * 2);
+  const zoom = zoomFor(lineHeight, level.x1 - level.x0 + margin * 2, sizes.partMax);
   report.lineHeight = Math.round(lineHeight);
   report.tilt = Math.round(tilt * 10) / 10;
   report.zoom = Math.round(zoom * 10) / 10;
@@ -151,7 +162,7 @@ export async function readReceipt<C extends Surface>(
   const receiptWidth = (level.x1 - level.x0 + margin * 2) * zoom;
   // Leave room for the extra height a part gains when it is turned level.
   const sin = Math.abs(Math.sin(rad(Math.abs(tilt) + 2)));
-  const maxPart = Math.max(PART_MAX / 2, Math.floor((PART_MAX - receiptWidth * sin) / Math.cos(rad(tilt))));
+  const maxPart = Math.max(sizes.partMax / 2, Math.floor((sizes.partMax - receiptWidth * sin) / Math.cos(rad(tilt))));
   const parts = planParts(viewHeight, lineHeight * zoom, maxPart);
   report.parts = parts.length;
   const partDone = (i: number) => READING_STARTS + ((CLOSER_LOOKS_START - READING_STARTS) * i) / parts.length;
@@ -202,7 +213,7 @@ export async function readReceipt<C extends Surface>(
   for (const [n, index] of unclear.entries()) {
     onStep(`Taking a closer look at unclear lines (${n + 1} of ${unclear.length})`, lookDone(n), lookDone(n + 1));
     const line = lines[index];
-    const clearer = await closerLook(engine, canvases, photo, views[line.part], line.words, zoom, strategy);
+    const clearer = await closerLook(engine, canvases, photo, views[line.part], line.words, zoom, strategy, sizes.partMax);
     if (clearer) {
       line.words = clearer;
       reread.add(line);
@@ -240,6 +251,7 @@ async function closerLook<C extends Surface>(
   words: OcrWord[],
   zoom: number,
   strategy: OcrStrategy,
+  partMax: number,
 ): Promise<OcrWord[] | null> {
   const b = groupBounds(words);
   const pad = b.height * 0.8;
@@ -249,11 +261,11 @@ async function closerLook<C extends Surface>(
   // The line's band across the full width also catches a price the first read missed…
   let crop = { x: 0, y, width: view.width, height };
   // …unless that is too wide to enlarge, then just the line itself.
-  if (PART_MAX / crop.width < wanted) {
+  if (partMax / crop.width < wanted) {
     const x = Math.max(0, b.x - pad * 2);
     crop = { x, y, width: Math.min(view.width - x, b.width + pad * 4), height };
   }
-  const k = Math.min(wanted, PART_MAX / crop.width);
+  const k = Math.min(wanted, partMax / crop.width);
   if (k < 1.25) return null; // no real zoom available: nothing new to see
 
   const image = canvases.create(Math.ceil(crop.width * k), Math.ceil(crop.height * k));

@@ -1,5 +1,6 @@
 import type { OcrLine } from '../parser/types';
 import { debugLog } from '../lib/debug-log';
+import { careLevel, readMoreGently, readingEnded, readingStarted } from './care';
 import type { OcrBackend, OcrRequest, OcrResponse, OcrStrategy, ReadReport } from './ocr-protocol';
 
 export interface OcrEngineInfo {
@@ -35,6 +36,7 @@ export class OcrClient {
   private pending = new Map<number, Pending>();
   private readyPromise: Promise<OcrEngineInfo> | null = null;
   private heardAt = 0;
+  private care = careLevel();
   private watchdog: ReturnType<typeof setInterval> | undefined;
 
   /** Starts the worker and loads the models (a few MB, cached by the service worker after the first time). */
@@ -63,13 +65,16 @@ export class OcrClient {
       worker.onerror = (event) => {
         console.error('[ocr] the worker crashed:', event.message);
         debugLog('app', `Reader crashed: ${event.message || 'no message'}${event.filename ? ` (${event.filename.split('/').pop()}:${event.lineno})` : ''}`);
-        const err = new ReaderStopped('The receipt reader stopped, maybe because the phone ran short of memory.');
+        const err = new ReaderStopped('The receipt reader stopped, maybe because the phone ran short of memory. Try again: it will read more gently.');
         reject(err);
+        readMoreGently(this.care);
         this.stop(err);
       };
       // Resolved against the page, so it works under GitHub Pages' /<repo>/ prefix.
       const base = new URL(import.meta.env.BASE_URL, location.href);
-      const init: OcrRequest = { type: 'init', modelsUrl: new URL('models/', base).href };
+      this.care = careLevel();
+      debugLog('app', `Reading mode: level ${this.care}`);
+      const init: OcrRequest = { type: 'init', modelsUrl: new URL('models/', base).href, care: this.care };
       worker.postMessage(init);
     });
     return this.readyPromise;
@@ -84,6 +89,7 @@ export class OcrClient {
     return new Promise<OcrRun>((resolve, reject) => {
       this.pending.set(id, { resolve, reject, onStep });
       const msg: OcrRequest = { type: 'recognize', id, image: bytes, strategy };
+      readingStarted(this.care);
       this.worker!.postMessage(msg, [bytes]);
       this.heardAt = Date.now();
       this.watchdog ??= setInterval(() => {
@@ -92,7 +98,8 @@ export class OcrClient {
           this.watchdog = undefined;
         } else if (Date.now() - this.heardAt > STALL_MS) {
           debugLog('app', `Reader silent for ${STALL_MS / 1000} s: stopping it`);
-          this.stop(new ReaderStopped('The receipt reader stopped responding, maybe because the phone ran short of memory.'));
+          readMoreGently(this.care);
+          this.stop(new ReaderStopped('The receipt reader stopped responding, maybe because the phone ran short of memory. Try again: it will read more gently.'));
         }
       }, 5000);
     });
@@ -107,11 +114,13 @@ export class OcrClient {
     this.watchdog = undefined;
     for (const entry of this.pending.values()) entry.reject(err);
     this.pending.clear();
+    readingEnded();
   }
 
   private settle(id: number) {
     const entry = this.pending.get(id);
     this.pending.delete(id);
+    if (!this.pending.size) readingEnded();
     return entry;
   }
 }

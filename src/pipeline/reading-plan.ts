@@ -16,11 +16,11 @@ const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n
 
 /**
  * Zoom factor that brings the writing to TARGET_LINE_HEIGHT: above 1 for small writing,
- * below 1 for big camera photos (faster, no loss). Never so wide that one part exceeds PART_MAX.
+ * below 1 for big camera photos (faster, no loss). Never so wide that one part exceeds `partMax`.
  */
-export function zoomFor(lineHeight: number, areaWidth: number): number {
+export function zoomFor(lineHeight: number, areaWidth: number, partMax = PART_MAX): number {
   const zoom = clamp(TARGET_LINE_HEIGHT / Math.max(lineHeight, 1), 0.5, 3);
-  return Math.min(zoom, PART_MAX / Math.max(areaWidth, 1));
+  return Math.min(zoom, partMax / Math.max(areaWidth, 1));
 }
 
 export interface Part {

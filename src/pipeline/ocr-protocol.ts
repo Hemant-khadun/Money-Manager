@@ -5,11 +5,19 @@ export type OcrStrategy = 'per-line' | 'per-box';
 /** Where the models run: the graphics chip (WebGPU) or the processor (WASM). */
 export type OcrBackend = 'webgpu' | 'wasm';
 
+/**
+ * How gently the reader works, to stay within a phone's memory (care.ts). 0: the graphics chip
+ * when it reads right, full sizes. 1: the processor, a smaller first look. 2: the processor,
+ * smaller parts and photos.
+ */
+export type CareLevel = 0 | 1 | 2;
+
 export type OcrRequest =
   | {
       type: 'init';
       /** Absolute URL: the worker can't resolve public/ paths against the page (GitHub Pages serves under /<repo>/). */
       modelsUrl: string;
+      care: CareLevel;
     }
   | { type: 'recognize'; id: number; image: ArrayBuffer; strategy: OcrStrategy };
 

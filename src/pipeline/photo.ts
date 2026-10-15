@@ -10,8 +10,8 @@ import type { Affine } from './affine';
 export const MAX_PIXELS = 12_500_000;
 
 /** How much to shrink a photo of this size (1 = not at all). */
-export function shrinkFor(width: number, height: number): number {
-  return Math.min(1, Math.sqrt(MAX_PIXELS / (width * height)));
+export function shrinkFor(width: number, height: number, maxPixels = MAX_PIXELS): number {
+  return Math.min(1, Math.sqrt(maxPixels / (width * height)));
 }
 
 /**
