@@ -241,8 +241,8 @@ export function Scan() {
         </span>
         <p className="text-footnote text-muted-foreground">
           <strong className="block text-subhead font-semibold text-foreground">Long receipt?</strong>
-          Take a few photos from top to bottom, each one repeating two or three lines of the one before, and choose them together: Spent joins them into one
-          receipt.
+          Take a few photos from top to bottom, each one repeating two or three lines of the one before. Spent joins them into one receipt. No need to
+          wait: take them one after another, or choose them together.
         </p>
       </div>
       <p className="mt-3 flex items-start gap-2 px-1 text-footnote text-muted-foreground" role="status">

@@ -8,6 +8,8 @@ import type { OcrStrategy, ReadReport } from '../pipeline/ocr-protocol';
 // Reading receipt photos, for the Scan screen and the reading test page. Photos are read one at a
 // time in the OCR worker. Photos added together are sorted once all are read: the parts of a long
 // receipt (photos that overlap) are joined into one receipt, the rest stay receipts of their own.
+// A photo added on its own is checked the same way against the receipt added just before it, so
+// the parts of a long receipt can be taken one after another without waiting.
 
 const ocr = new OcrClient();
 
@@ -56,6 +58,8 @@ export interface ReadScan {
   parsed?: ParsedReceipt;
   /** Photos added together were found to continue each other and joined into this one receipt. */
   joinedAutomatically?: boolean;
+  /** When its latest photo was added (ms). */
+  addedAt: number;
 }
 
 export interface ReaderOptions {
@@ -67,6 +71,9 @@ export interface ReaderOptions {
 
 /** Photos added together, waiting until all are read to see which belong to the same receipt. */
 type Batch = Array<{ scanId: number; photo: Photo }>;
+
+/** A photo added on its own may continue the receipt added just before it, if that was this recent. */
+const CONTINUE_WITHIN_MS = 10 * 60_000;
 
 interface Job {
   scanId: number;
@@ -191,20 +198,49 @@ export function useReceiptReader(options: ReaderOptions = {}) {
 
     const { groupPhotos } = await tools();
     for (const group of groupPhotos(members.map((m) => cache.current.get(m.photo.id)!.lines))) {
-      if (group.length < 2) continue;
       const parts = group.map((i) => members[i]);
-      if (optionsRef.current.canJoin && !optionsRef.current.canJoin(parts.map((m) => m.scanId))) continue;
+      const merged = new Set(parts.map((m) => m.scanId));
+      if (merged.size < 2) continue;
+      // A receipt already made of several photos joins whole or not at all: never split one up here.
+      if (members.some((m) => merged.has(m.scanId) && !parts.includes(m))) continue;
+      if (optionsRef.current.canJoin && !optionsRef.current.canJoin([...merged])) continue;
       const keepId = members[Math.min(...group)].scanId;
       const photos = parts.map((m) => m.photo);
-      const merged = new Set(parts.map((m) => m.scanId));
+      debugLog('app', `Photos continue each other: joined ${photos.length} photos into one receipt`);
       setScans((all) =>
         all.flatMap((s) => {
-          if (s.id === keepId) return [{ ...s, photos, status: 'queued' as const, joinedAutomatically: true }];
+          if (s.id === keepId) return [{ ...s, photos, status: 'queued' as const, joinedAutomatically: true, addedAt: Date.now() }];
           return merged.has(s.id) ? [] : [s];
         }),
       );
       enqueue(keepId, photos);
     }
+  }
+
+  /**
+   * A photo added on its own: once it and the receipt added just before it are read, they are
+   * joined if the photo continues that receipt (the next part of a long receipt).
+   */
+  function tryContinuing(photoScan: ReadScan) {
+    const previous = scansRef.current.filter((s) => s.status !== 'error').sort((a, b) => b.addedAt - a.addedAt)[0];
+    if (!previous || photoScan.addedAt - previous.addedAt > CONTINUE_WITHIN_MS) return;
+    if (optionsRef.current.canJoin && !optionsRef.current.canJoin([previous.id])) return;
+    const sorting = batchOf.current.get(previous.id);
+    if (sorting !== undefined) {
+      // The photos before it are still being sorted (taken quickly one after another): it joins them.
+      batches.current.get(sorting)!.push({ scanId: photoScan.id, photo: photoScan.photos[0] });
+      batchOf.current.set(photoScan.id, sorting);
+      return;
+    }
+    const batchId = nextId++;
+    batches.current.set(batchId, [
+      ...photosInOrder(previous).map((photo) => ({ scanId: previous.id, photo })),
+      { scanId: photoScan.id, photo: photoScan.photos[0] },
+    ]);
+    batchOf.current.set(previous.id, batchId);
+    batchOf.current.set(photoScan.id, batchId);
+    // Already read: the check runs as soon as the new photo is.
+    void sortBatch(batchId);
   }
 
   /** A photo that can't take part in sorting its batch any more (it failed, or was removed or changed). */
@@ -223,7 +259,8 @@ export function useReceiptReader(options: ReaderOptions = {}) {
       return [];
     }
     for (const file of files) debugLog('app', `Photo chosen: ${(file.size / 1e6).toFixed(1)} MB, ${file.type || 'unknown type'}`);
-    const added = toPhotos(files).map((photo): ReadScan => ({ id: nextId++, photos: [photo], status: 'queued' }));
+    const added = toPhotos(files).map((photo): ReadScan => ({ id: nextId++, photos: [photo], status: 'queued', addedAt: Date.now() }));
+    if (added.length === 1) tryContinuing(added[0]);
     if (added.length > 1) {
       const batchId = nextId++;
       batches.current.set(batchId, added.map((s) => ({ scanId: s.id, photo: s.photos[0] })));
@@ -240,7 +277,7 @@ export function useReceiptReader(options: ReaderOptions = {}) {
     if (!scan || !files?.length) return;
     void leaveBatch(scanId);
     const photos = [...scan.photos, ...toPhotos(files)];
-    update(scanId, () => ({ photos }));
+    update(scanId, () => ({ photos, addedAt: Date.now() }));
     enqueue(scanId, photos);
   }
 
@@ -259,7 +296,7 @@ export function useReceiptReader(options: ReaderOptions = {}) {
   function split(scanId: number): number[] {
     const scan = scansRef.current.find((s) => s.id === scanId);
     if (!scan) return [];
-    const separate = scan.photos.map((photo, k): ReadScan => ({ id: k === 0 ? scan.id : nextId++, photos: [photo], status: 'queued' }));
+    const separate = scan.photos.map((photo, k): ReadScan => ({ id: k === 0 ? scan.id : nextId++, photos: [photo], status: 'queued', addedAt: scan.addedAt }));
     setScans((all) => all.flatMap((s) => (s.id === scanId ? separate : [s])));
     for (const s of separate) enqueue(s.id, s.photos);
     return separate.map((s) => s.id);
