@@ -8,7 +8,8 @@ import { Button, FieldRow, Group, Segmented, buttonBase, buttonKinds, inputClass
 import { saveReceipt, type ReceiptDraft } from '../../db/receipts';
 import { itemsAddUp } from '../../kpi/adds-up';
 import type { Category } from '../../db/schema';
-import { useCategories, useDuplicate, useStores } from '../../hooks/data';
+import { useCategories, useStores } from '../../hooks/data';
+import { useDuplicate } from '../../hooks/useDuplicate';
 import { DuplicateNote } from '../../components/DuplicateNote';
 import { photosInOrder, type ReadScan } from '../../hooks/useReceiptReader';
 import { centsToInput, formatMoney } from '../../lib/format';

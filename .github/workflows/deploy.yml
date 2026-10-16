@@ -30,6 +30,8 @@ jobs:
       - run: npm test
       # Also downloads the OCR model files (scripts/fetch-assets.mjs) and type-checks.
       - run: npm run build
+      # The first screen's JS stays within the start-up budget (docs/PLAN.md §7b).
+      - run: npm run check-size
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
         with:

@@ -1,8 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useCallback } from 'react';
 import { useSafely, useToast } from '../components/Toast';
-import { LAST_BACKUP, backupDue, exportBackup, getSetting, setSetting } from '../db/backup';
-import { db } from '../db/schema';
+import { LAST_BACKUP, exportBackup, getSetting, setSetting } from '../db/backup';
 
 // Backing up, from Settings or from the reminder on Overview: the file goes wherever the person
 // shares it to (Drive, email, files), or is downloaded where sharing files isn't possible.
@@ -45,14 +44,4 @@ export function useBackUp() {
 /** When the last backup was made (ISO time); null when never, undefined while loading. */
 export function useLastBackup() {
   return useLiveQuery(async () => (await getSetting<string>(LAST_BACKUP)) ?? null, []);
-}
-
-/** Whether Overview reminds the person to back up (see backupDue). */
-export function useBackupDue(): boolean {
-  return (
-    useLiveQuery(async () => {
-      const [lastBackupAt, first] = await Promise.all([getSetting<string>(LAST_BACKUP), db.receipts.orderBy('createdAt').first()]);
-      return backupDue({ now: Date.now(), lastBackupAt, firstReceiptAt: first?.createdAt });
-    }, []) ?? false
-  );
 }

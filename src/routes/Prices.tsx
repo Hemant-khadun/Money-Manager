@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react';
 import { Page } from '../components/Page';
 import { PriceRow } from '../components/PriceRow';
 import { EmptyState, Group, SearchField, Segmented } from '../components/primitives';
-import { usePrices } from '../hooks/data';
+import { usePrices } from '../hooks/usePrices';
 import { filterChanges, priceChanges, type PriceChange, type PriceFilter } from '../kpi/prices';
 import { normalizeText } from '../parser/text';
 

@@ -1,9 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useState } from 'react';
-import { findDuplicate, type ReceiptDraft } from '../db/receipts';
+import { LAST_BACKUP, backupDue } from '../db/backup-due';
 import { db } from '../db/schema';
-import { receiptsAddingUp } from '../kpi/adds-up';
-import { productPrices } from '../kpi/prices';
 
 // Live views of the phone's data: screens update by themselves when a receipt is saved or changed.
 
@@ -39,20 +37,14 @@ export function useItemsInMonth(month: string) {
   return useLiveQuery(() => db.items.where('month').equals(month).toArray(), [month]);
 }
 
-/**
- * Everything bought on receipts whose items add up, by product, with what it cost each time;
- * plus how many receipts that is out of all of them.
- */
-export function usePrices() {
-  return useLiveQuery(async () => {
-    const [receipts, items] = await Promise.all([db.receipts.toArray(), db.items.toArray()]);
-    return { products: productPrices(items, receipts), itemized: receiptsAddingUp(items, receipts).size, receipts: receipts.length };
-  }, []);
-}
-
-/** A saved receipt that looks like this one; null when there is none. */
-export function useDuplicate({ storeId, storeName, date, total }: Pick<ReceiptDraft, 'storeId' | 'storeName' | 'date' | 'total'>) {
-  return useLiveQuery(() => findDuplicate({ storeId, storeName, date, total }), [storeId, storeName, date, total]);
+/** Whether Overview reminds the person to back up (see backupDue). */
+export function useBackupDue(): boolean {
+  return (
+    useLiveQuery(async () => {
+      const [last, first] = await Promise.all([db.settings.get(LAST_BACKUP), db.receipts.orderBy('createdAt').first()]);
+      return backupDue({ now: Date.now(), lastBackupAt: last?.value as string | undefined, firstReceiptAt: first?.createdAt });
+    }, []) ?? false
+  );
 }
 
 export function useStores() {

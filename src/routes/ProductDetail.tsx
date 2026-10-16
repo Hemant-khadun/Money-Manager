@@ -4,7 +4,7 @@ import { MoneyHero } from '../components/Money';
 import { Page } from '../components/Page';
 import { formatPrice, previousWhen } from '../components/PriceRow';
 import { ChangeBadge, EmptyState, Group, Row } from '../components/primitives';
-import { usePrices } from '../hooks/data';
+import { usePrices } from '../hooks/usePrices';
 import { priceChange, type PriceChange } from '../kpi/prices';
 import { formatMoney, formatPercent, formatShortDate } from '../lib/format';
 

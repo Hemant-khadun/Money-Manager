@@ -10,6 +10,7 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
+    "check-size": "node scripts/check-size.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "eval": "vitest run tests/eval.spec.ts --silent=false"

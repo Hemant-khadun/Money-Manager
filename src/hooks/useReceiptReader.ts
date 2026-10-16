@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { describeError } from '../lib/describe-error';
 import { debugLog } from '../lib/debug-log';
 import type { OcrLine, ParsedReceipt } from '../parser/types';
-import { OcrClient, ReaderStopped, type OcrEngineInfo } from '../pipeline/ocr-client';
+import type { OcrClient, OcrEngineInfo } from '../pipeline/ocr-client';
 import type { OcrStrategy, ReadReport } from '../pipeline/ocr-protocol';
 import { forgetPending, highestId, keepPending, loadPending, pendingKey, photoFile, toPending } from '../scan/pending';
 
@@ -14,7 +14,13 @@ import { forgetPending, highestId, keepPending, loadPending, pendingKey, photoFi
 // With `keep`, receipts not saved yet are kept on the phone and come back when the page opens
 // again (scan/pending.ts).
 
-const ocr = new OcrClient();
+/** The OCR client loads with the first photo (or the Scan screen), not with the app. */
+let started: Promise<OcrClient> | undefined;
+const ocr = {
+  module: () => import('../pipeline/ocr-client'),
+  get: () => (started ??= ocr.module().then((m) => new m.OcrClient())),
+  ready: () => ocr.get().then((c) => c.ready()),
+};
 
 /** Parsing and joining load with the first photo, not with the app. */
 const tools = () => Promise.all([import('../parser/parse'), import('../pipeline/stitch')]).then(([parse, stitch]) => ({ ...parse, ...stitch }));
@@ -197,7 +203,7 @@ export function useReceiptReader(options: ReaderOptions = {}) {
         for (const [k, photo] of job.photos.entries()) {
           if (cache.current.get(photo.id)?.strategy === job.strategy) continue;
           const prefix = job.photos.length > 1 ? `Photo ${k + 1} of ${job.photos.length}: ` : '';
-          const run = await ocr.recognize(photo.file, job.strategy, (step, done, next) =>
+          const run = await (await ocr.get()).recognize(photo.file, job.strategy, (step, done, next) =>
             update(job.scanId, () => ({ step: prefix + step, progress: { done: (k + done) / job.photos.length, next: (k + next) / job.photos.length } })),
           );
           cache.current.set(photo.id, { strategy: job.strategy, lines: run.lines, report: run.report, ms: run.ms });
@@ -228,6 +234,7 @@ export function useReceiptReader(options: ReaderOptions = {}) {
         if (batchId !== undefined) await sortBatch(batchId);
       } catch (err) {
         debugLog('app', `Receipt failed: ${describeError(err)}`);
+        const { ReaderStopped } = await ocr.module();
         update(job.scanId, () => ({
           status: 'error',
           step: undefined,

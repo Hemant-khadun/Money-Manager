@@ -6,7 +6,7 @@ import { PriceCard } from '../components/PriceRow';
 import { Group, GroupLink, Row } from '../components/primitives';
 import { ShopAvatar } from '../components/ShopAvatar';
 import type { Category } from '../db/schema';
-import { usePrices } from '../hooks/data';
+import { usePrices } from '../hooks/usePrices';
 import { formatMoney } from '../lib/format';
 import { monthName, type MonthSummary } from '../kpi/monthly';
 import { filterChanges, priceChanges } from '../kpi/prices';

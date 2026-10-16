@@ -1,4 +1,5 @@
 import { formatDate } from '../lib/format';
+import { LAST_BACKUP } from './backup-due';
 import { db, type Category, type LineItem, type Product, type Receipt, type Setting, type Store, type Thumb } from './schema';
 
 // Backup and restore: everything in one JSON file the person keeps (Drive, email, files).
@@ -142,19 +143,7 @@ export async function undoRestore(before: PhoneData): Promise<void> {
   await replaceAll(before);
 }
 
-/** When the last backup was made (ISO time). */
-export const LAST_BACKUP = 'lastBackupAt';
-
-const DAY = 86_400_000;
-
-/**
- * Whether to remind the person to back up: they have receipts, and the last backup is over 30 days
- * old, or there was never one and the first receipt was saved over a week ago.
- */
-export function backupDue({ now, lastBackupAt, firstReceiptAt }: { now: number; lastBackupAt: string | undefined; firstReceiptAt: number | undefined }): boolean {
-  if (firstReceiptAt === undefined) return false;
-  return lastBackupAt ? now - Date.parse(lastBackupAt) > 30 * DAY : now - firstReceiptAt > 7 * DAY;
-}
+export { LAST_BACKUP, backupDue } from './backup-due';
 
 export async function getSetting<T>(key: string): Promise<T | undefined> {
   return (await db.settings.get(key))?.value as T | undefined;
