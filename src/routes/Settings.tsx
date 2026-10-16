@@ -131,9 +131,8 @@ export function Settings() {
         )}
       </Group>
 
-      <Group title="Testing">
+      <Group title="Help">
         <Row to="/debug" title="Problem report" subtitle="Scanning not working? Try a photo and send the report" />
-        <Row to="/test" title="Receipt reading test" subtitle="Check how well receipts are read, and save test receipts" />
       </Group>
     </Page>
   );

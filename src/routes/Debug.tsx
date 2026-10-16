@@ -235,6 +235,11 @@ export function Debug() {
       >
         Reset the reading mode
       </button>
+
+      {/* For whoever works on the receipt reader: measuring it needs a computer (docs/PLAN.md §14, step 6). */}
+      <Group title="For developers">
+        <Row to="/test" title="Receipt reading test" subtitle="Check how well receipts are read, and save test receipts" />
+      </Group>
     </Page>
   );
 }
