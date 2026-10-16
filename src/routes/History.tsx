@@ -1,5 +1,6 @@
 import { Check, Plus, ReceiptText, SearchX } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { useDeferredValue, useMemo, useState } from 'react';
 import { useApp } from '../app/AppContext';
 import { CategoryIcon } from '../components/CategoryIcon';
 import { categoryIcon, categoryName } from '../components/CategoryPicker';
@@ -7,13 +8,14 @@ import { Page } from '../components/Page';
 import { useSafely, useToast } from '../components/Toast';
 import { EmptyState, Group, IconButton, Row, SearchField, buttonBase } from '../components/primitives';
 import { deleteReceipts, restoreReceipts } from '../db/receipts';
-import type { Receipt } from '../db/schema';
+import { db, type Receipt } from '../db/schema';
 import { useAllReceipts, useCategories } from '../hooks/data';
 import { formatDayMonth, formatMoney } from '../lib/format';
+import { hasText, itemMatches } from '../lib/search';
 import { monthName, todayIso } from '../kpi/monthly';
 
 // Every receipt, newest first, a section per month with its total. Tap one to see it, change it
-// or delete it; "Select" deletes several at once.
+// or delete it; "Select" deletes several at once. Search finds shops, categories, notes and items.
 
 /** Where most of a receipt's money went (its split is biggest first). */
 const mainCategory = (r: Receipt) => r.split[0]?.categoryId ?? r.categoryId;
@@ -41,15 +43,21 @@ export function History() {
   /** While choosing receipts to delete, the ones chosen; null otherwise. */
   const [chosen, setChosen] = useState<Set<number> | null>(null);
 
+  const q = query.trim();
+  // Items are looked through a moment later than the rest, so typing stays quick.
+  const itemQuery = useDeferredValue(q);
+  const items = useLiveQuery(async () => (itemQuery ? itemMatches(await db.items.toArray(), itemQuery) : null), [itemQuery]);
+  /** The receipts with an item matching the search, and that item's name. */
+  const byItem = itemQuery === q ? items : null;
+
   const months = useMemo(() => {
-    const q = query.trim().toLowerCase();
     const shown = (receipts ?? []).filter(
-      (r) => !q || r.storeName.toLowerCase().includes(q) || categoryName(r.categoryId, categories).toLowerCase().includes(q) || r.note.toLowerCase().includes(q),
+      (r) => !q || hasText(r.storeName, q) || hasText(categoryName(r.categoryId, categories), q) || hasText(r.note, q) || byItem?.has(r.id!),
     );
     const byMonth = new Map<string, Receipt[]>();
     for (const r of shown) byMonth.set(r.month, [...(byMonth.get(r.month) ?? []), r]);
     return [...byMonth];
-  }, [receipts, categories, query]);
+  }, [receipts, categories, q, byItem]);
 
   const today = todayIso();
   const shownIds = months.flatMap(([, list]) => list.map((r) => r.id!));
@@ -91,7 +99,7 @@ export function History() {
 
   return (
     <Page title="History" actions={actions}>
-      <SearchField value={query} onChange={setQuery} placeholder="Search shops and categories" label="Search receipts" />
+      <SearchField value={query} onChange={setQuery} placeholder="Search shops, items and categories" label="Search receipts" />
 
       {receipts && receipts.length > 0 &&
         (chosen ? (
@@ -121,7 +129,9 @@ export function History() {
           {list.map((r) => {
             const icon = <CategoryIcon icon={categoryIcon(mainCategory(r), categories)} />;
             const title = r.storeName || categoryName(mainCategory(r), categories);
-            const said = `${formatDayMonth(r.date)} · ${r.split.length > 1 ? `${r.split.length} categories` : categoryName(mainCategory(r), categories)}`;
+            // Found by one of its items: that item says why it is listed.
+            const found = byItem?.get(r.id!);
+            const said = `${formatDayMonth(r.date)} · ${found ?? (r.split.length > 1 ? `${r.split.length} categories` : categoryName(mainCategory(r), categories))}`;
             // Saved before dates in the future were caught: it doesn't show on Overview until fixed.
             const subtitle =
               r.date > today ? (
