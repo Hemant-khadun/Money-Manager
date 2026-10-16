@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useApp } from '../app/AppContext';
 import { CategoryIcon } from '../components/CategoryIcon';
 import { Sheet } from '../components/Sheet';
-import { useToast } from '../components/Toast';
+import { useSafely, useToast } from '../components/Toast';
 import { Button, FieldRow, Group, Segmented, inputClass } from '../components/primitives';
 import { OTHER } from '../db/categories';
 import { saveReceipt } from '../db/receipts';
@@ -27,6 +27,7 @@ export function AddExpenseSheet() {
   const categories = useCategories() ?? [];
   const stores = useStores() ?? [];
   const toast = useToast();
+  const safely = useSafely();
   const [amount, setAmount] = useState('');
   const [what, setWhat] = useState('');
   const [categoryId, setCategoryId] = useState<string | null>(null);
@@ -56,7 +57,8 @@ export function AddExpenseSheet() {
     if (!cents || cents <= 0) return;
     setBusy(true);
     try {
-      await saveReceipt({
+      const saved = await safely("Couldn't add this expense", () =>
+        saveReceipt({
         storeId: null,
         storeName: what,
         taxId: null,
@@ -69,7 +71,9 @@ export function AddExpenseSheet() {
         items: [],
         source: 'manual',
         note: '',
-      });
+      }),
+      );
+      if (!saved.ok) return;
       void askToKeepData();
       toast(`Added to ${monthName(date.slice(0, 7))}`);
       reset();

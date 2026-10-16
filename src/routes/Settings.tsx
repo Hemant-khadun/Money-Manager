@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { applyTheme, savedTheme, type ThemeChoice } from '../app/theme';
 import { CategoryIcon } from '../components/CategoryIcon';
 import { Page } from '../components/Page';
-import { useToast } from '../components/Toast';
+import { useSafely, useToast } from '../components/Toast';
 import { Group, Row, Segmented } from '../components/primitives';
 import { BackupError, exportBackup, getSetting, restoreBackup, setSetting } from '../db/backup';
 import { setBudget } from '../db/receipts';
@@ -22,11 +22,12 @@ const THEMES: ReadonlyArray<{ value: ThemeChoice; label: string }> = [
 ];
 
 function BudgetRow({ category }: { category: Category }) {
+  const safely = useSafely();
   const [text, setText] = useState(category.monthlyBudget ? centsToInput(category.monthlyBudget) : '');
   const save = () => {
     const cents = text.trim() ? parseMoneyInput(text) : null;
     if (cents === category.monthlyBudget) return;
-    void setBudget(category.id, cents && cents > 0 ? cents : null);
+    void safely("Couldn't save this budget", () => setBudget(category.id, cents && cents > 0 ? cents : null));
   };
   return (
     <div className="group/row flex items-center gap-3 pl-4">

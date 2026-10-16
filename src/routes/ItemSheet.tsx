@@ -36,7 +36,8 @@ export function ItemSheet({
   /** Opened from the review sheet. */
   nested?: boolean;
   categories: Category[];
-  onSave: (fields: ItemFields) => void | Promise<void>;
+  /** false: it couldn't be saved (and the person was told); the sheet stays open. */
+  onSave: (fields: ItemFields) => void | boolean | Promise<void | boolean>;
   onDelete?: () => void;
   onClose: () => void;
 }) {
@@ -64,7 +65,7 @@ export function ItemSheet({
     if (!item || !valid || count === null || cents === null) return;
     setBusy(true);
     try {
-      await onSave({ name, qty: count, lineTotal: discount ? -Math.abs(cents) : cents, categoryId });
+      if ((await onSave({ name, qty: count, lineTotal: discount ? -Math.abs(cents) : cents, categoryId })) === false) return;
       onClose();
     } finally {
       setBusy(false);

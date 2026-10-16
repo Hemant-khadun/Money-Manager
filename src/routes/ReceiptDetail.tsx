@@ -6,11 +6,11 @@ import { CategoryPicker, categoryIcon, categoryName } from '../components/Catego
 import { Meter } from '../components/charts/Meter';
 import { MoneyHero } from '../components/Money';
 import { Page } from '../components/Page';
-import { useToast } from '../components/Toast';
+import { useSafely, useToast } from '../components/Toast';
 import { Button, EmptyState, FieldRow, Group, Row, Segmented, inputClass } from '../components/primitives';
 import { groupByCategory } from '../categorize/group';
 import { itemsAddUp } from '../kpi/adds-up';
-import { deleteItem, deleteReceipt, restoreItems, restoreReceipt, setItemCategory, updateItem, updateReceipt } from '../db/receipts';
+import { deleteItem, deleteReceipt, restoreItems, restoreReceipt, setItemCategory, updateItem, updateReceipt, type ReceiptChanges } from '../db/receipts';
 import type { Category, LineItem, Receipt } from '../db/schema';
 import { useCategories, useReceipt, useReceiptItems, useThumbUrl } from '../hooks/data';
 import { centsToInput, formatDate, formatMoney, formatPercent } from '../lib/format';
@@ -38,6 +38,7 @@ function addedOn(ms: number): string {
 
 /** One line of the receipt: name, how many at what price, its category (changeable) and what it cost; the pencil changes the rest. */
 function ItemRow({ item, categories, onEdit }: { item: LineItem; categories: Category[]; onEdit: (item: LineItem) => void }) {
+  const safely = useSafely();
   return (
     <div className="group/row pl-4">
       <div className="flex min-h-12 items-center gap-3 border-b border-dashed border-border py-2 pr-4 group-last/row:border-b-0">
@@ -47,7 +48,7 @@ function ItemRow({ item, categories, onEdit }: { item: LineItem; categories: Cat
             {item.qty !== 1 && <span className="font-normal text-muted-foreground"> · {item.qty} × {formatMoney(item.unitPrice)}</span>}
           </p>
           {item.kind === 'item' ? (
-            <CategoryPicker label={`Category for ${item.name}`} value={item.categoryId} categories={categories} onChange={(c) => void setItemCategory(item.id!, c)} className="text-footnote" />
+            <CategoryPicker label={`Category for ${item.name}`} value={item.categoryId} categories={categories} onChange={(c) => void safely("Couldn't change its category", () => setItemCategory(item.id!, c))} className="text-footnote" />
           ) : (
             <p className="text-footnote text-muted-foreground">Discount</p>
           )}
@@ -165,6 +166,9 @@ export function ReceiptDetail() {
   const categories = useCategories() ?? [];
   const thumb = useThumbUrl(id);
   const toast = useToast();
+  const safely = useSafely();
+  /** Saves a change to the receipt as it is made. */
+  const change = (changes: ReceiptChanges) => void safely("Couldn't save that change", () => updateReceipt(id, changes));
   const navigate = useNavigate();
   const [name, setName] = useState('');
   const [total, setTotal] = useState('');
@@ -196,26 +200,31 @@ export function ReceiptDetail() {
   const saved = receipt.discountTotal ?? -kept.filter((i) => i.kind === 'discount').reduce((sum, i) => sum + i.lineTotal, 0);
 
   async function remove() {
-    const deleted = await deleteReceipt(id);
+    const result = await safely("Couldn't delete this receipt", () => deleteReceipt(id));
+    const deleted = result.ok && result.value;
     if (!deleted) return;
     void navigate({ to: '/history' });
-    toast('Receipt deleted', { label: 'Undo', run: () => void restoreReceipt(deleted) });
+    toast('Receipt deleted', { label: 'Undo', run: () => void safely("Couldn't bring it back", () => restoreReceipt(deleted)) });
   }
 
-  async function saveItem(item: LineItem, { categoryId, ...changes }: ItemFields) {
-    await updateItem(item.id!, changes);
-    if (item.kind === 'item' && categoryId !== item.categoryId) await setItemCategory(item.id!, categoryId);
+  async function saveItem(item: LineItem, { categoryId, ...changes }: ItemFields): Promise<boolean> {
+    const saved = await safely("Couldn't save this item", async () => {
+      await updateItem(item.id!, changes);
+      if (item.kind === 'item' && categoryId !== item.categoryId) await setItemCategory(item.id!, categoryId);
+    });
+    return saved.ok;
   }
 
   async function removeItem(item: LineItem) {
     setEditingId(null);
-    const deleted = await deleteItem(item.id!);
-    if (deleted) toast(`${item.kind === 'discount' ? 'Discount' : 'Item'} deleted`, { label: 'Undo', run: () => void restoreItems(deleted) });
+    const result = await safely(`Couldn't delete this ${item.kind === 'discount' ? 'discount' : 'item'}`, () => deleteItem(item.id!));
+    const deleted = result.ok && result.value;
+    if (deleted) toast(`${item.kind === 'discount' ? 'Discount' : 'Item'} deleted`, { label: 'Undo', run: () => void safely("Couldn't bring it back", () => restoreItems(deleted)) });
   }
 
   function saveTotal() {
     const cents = parseMoneyInput(total);
-    if (cents && cents > 0 && cents !== receipt!.total) void updateReceipt(id, { total: cents });
+    if (cents && cents > 0 && cents !== receipt!.total) change({ total: cents });
     else setTotal(centsToInput(receipt!.total));
   }
 
@@ -238,28 +247,28 @@ export function ReceiptDetail() {
 
       <Group footer="Tap a detail to change it. Changes are saved straight away.">
         <FieldRow label="Shop" htmlFor="r-shop">
-          <input id="r-shop" value={name} placeholder="Shop name" onChange={(e) => setName(e.target.value)} onBlur={() => name !== receipt.storeName && void updateReceipt(id, { storeName: name })} className={inputClass} />
+          <input id="r-shop" value={name} placeholder="Shop name" onChange={(e) => setName(e.target.value)} onBlur={() => name !== receipt.storeName && change({ storeName: name })} className={inputClass} />
         </FieldRow>
         <FieldRow label="Total" htmlFor="r-total">
           <input id="r-total" inputMode="decimal" value={total} onChange={(e) => setTotal(e.target.value)} onBlur={saveTotal} className={inputClass} />
         </FieldRow>
         <FieldRow label="Date" htmlFor="r-date">
-          <input id="r-date" type="date" value={receipt.date} onChange={(e) => e.target.value && void updateReceipt(id, { date: e.target.value })} className={inputClass} />
+          <input id="r-date" type="date" value={receipt.date} onChange={(e) => e.target.value && change({ date: e.target.value })} className={inputClass} />
         </FieldRow>
         <FieldRow label="Category">
           <div className="flex items-center justify-end gap-2 py-1.5">
             <CategoryIcon icon={categoryIcon(receipt.categoryId, categories)} size="sm" />
-            <CategoryPicker label="Category" value={receipt.categoryId} categories={categories} onChange={(categoryId) => void updateReceipt(id, { categoryId })} className="text-right text-body" />
+            <CategoryPicker label="Category" value={receipt.categoryId} categories={categories} onChange={(categoryId) => change({ categoryId })} className="text-right text-body" />
           </div>
         </FieldRow>
         <FieldRow label="Note" htmlFor="r-note">
-          <input id="r-note" value={note} placeholder="Optional" onChange={(e) => setNote(e.target.value)} onBlur={() => note !== receipt.note && void updateReceipt(id, { note })} className={inputClass} />
+          <input id="r-note" value={note} placeholder="Optional" onChange={(e) => setNote(e.target.value)} onBlur={() => note !== receipt.note && change({ note })} className={inputClass} />
         </FieldRow>
       </Group>
 
       <Group title="Paid by">
         <div className="p-1.5">
-          <Segmented<PaymentMethod> label="Paid by" value={receipt.paymentMethod ?? 'other'} options={PAYMENT_OPTIONS} onChange={(paymentMethod) => void updateReceipt(id, { paymentMethod })} />
+          <Segmented<PaymentMethod> label="Paid by" value={receipt.paymentMethod ?? 'other'} options={PAYMENT_OPTIONS} onChange={(paymentMethod) => change({ paymentMethod })} />
         </div>
       </Group>
 
@@ -280,7 +289,7 @@ export function ReceiptDetail() {
           items={items}
           categories={categories}
           onEdit={(item) => setEditingId(item.id!)}
-          onUseItemsTotal={(cents) => void updateReceipt(id, { total: cents })}
+          onUseItemsTotal={(cents) => change({ total: cents })}
         />
       )}
       {receipt.source === 'scan' && !receipt.itemized && (
@@ -297,9 +306,7 @@ export function ReceiptDetail() {
         item={editing}
         itemKey={editingId}
         categories={categories}
-        onSave={async (fields) => {
-          if (editing) await saveItem(editing, fields);
-        }}
+        onSave={(fields) => (editing ? saveItem(editing, fields) : undefined)}
         onDelete={() => editing && void removeItem(editing)}
         onClose={() => setEditingId(null)}
       />

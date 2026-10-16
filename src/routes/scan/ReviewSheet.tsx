@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { CategoryIcon } from '../../components/CategoryIcon';
 import { CategoryPicker, categoryIcon } from '../../components/CategoryPicker';
 import { Sheet } from '../../components/Sheet';
-import { useToast } from '../../components/Toast';
+import { useSafely, useToast } from '../../components/Toast';
 import { Button, FieldRow, Group, Segmented, buttonBase, buttonKinds, inputClass } from '../../components/primitives';
 import { saveReceipt, type ReceiptDraft } from '../../db/receipts';
 import { itemsAddUp } from '../../kpi/adds-up';
@@ -191,6 +191,7 @@ export function ReviewSheet({ scan, onClose, onSaved, onAddPhotos, onSplit, onRe
   const categories = useCategories() ?? [];
   const stores = useStores() ?? [];
   const toast = useToast();
+  const safely = useSafely();
   const [draft, setDraft] = useState<ReceiptDraft | null>(null);
   const [totalText, setTotalText] = useState('');
   const [busy, setBusy] = useState(false);
@@ -231,10 +232,13 @@ export function ReviewSheet({ scan, onClose, onSaved, onAddPhotos, onSplit, onRe
     setBusy(true);
     try {
       const top = photosInOrder(scan)[0];
-      const thumb = top ? await makeThumbnail(top.file) : null;
       // The items are saved as the person saw them on this screen, adding up or not: the receipt
       // keeps its total either way, and says when its items don't add up to it.
-      await saveReceipt({ ...draft, total }, { ocrLines: scan.lines, thumb });
+      const saved = await safely("Couldn't save this receipt", async () => {
+        const thumb = top ? await makeThumbnail(top.file) : null;
+        return saveReceipt({ ...draft, total }, { ocrLines: scan.lines, thumb });
+      });
+      if (!saved.ok) return;
       void askToKeepData();
       toast(`Saved to ${monthName(draft.date.slice(0, 7))}`);
       onSaved(scan);

@@ -4,7 +4,7 @@ import { useApp } from '../app/AppContext';
 import { CategoryIcon } from '../components/CategoryIcon';
 import { categoryIcon, categoryName } from '../components/CategoryPicker';
 import { Page } from '../components/Page';
-import { useToast } from '../components/Toast';
+import { useSafely, useToast } from '../components/Toast';
 import { EmptyState, Group, IconButton, Row, SearchField, buttonBase } from '../components/primitives';
 import { deleteReceipts, restoreReceipts } from '../db/receipts';
 import type { Receipt } from '../db/schema';
@@ -36,6 +36,7 @@ export function History() {
   const receipts = useAllReceipts();
   const categories = useCategories();
   const toast = useToast();
+  const safely = useSafely();
   const [query, setQuery] = useState('');
   /** While choosing receipts to delete, the ones chosen; null otherwise. */
   const [chosen, setChosen] = useState<Set<number> | null>(null);
@@ -64,9 +65,12 @@ export function History() {
   }
 
   async function deletePicked() {
-    const deleted = await deleteReceipts(picked);
+    const deleted = await safely(`Couldn't delete ${picked.length === 1 ? 'this receipt' : 'these receipts'}`, () => deleteReceipts(picked));
+    if (!deleted.ok) return;
     setChosen(null);
-    if (deleted.length) toast(`${receiptsWord(deleted.length)} deleted`, { label: 'Undo', run: () => void restoreReceipts(deleted) });
+    if (deleted.value.length) {
+      toast(`${receiptsWord(deleted.value.length)} deleted`, { label: 'Undo', run: () => void safely("Couldn't bring them back", () => restoreReceipts(deleted.value)) });
+    }
   }
 
   const actions = chosen ? (
