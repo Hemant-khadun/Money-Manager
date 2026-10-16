@@ -257,10 +257,11 @@ export function Scan() {
 
   return (
     <Page title="Scan" glow>
-      {!busy && restartedWhileReading() && (
+      {reader.restored !== null && restartedWhileReading() && (
         <p className="panel mt-3 p-4 text-subhead" role="status">
-          Money Manager had to start again while reading your last photo, probably because the phone ran short of memory. It now reads more gently, which takes
-          a little longer. Please add the photo again.
+          Money Manager had to start again while reading your photos, probably because the phone ran short of memory. It now reads more gently, which takes a
+          little longer.{' '}
+          {reader.restored > 0 ? 'Your photos are back, and are being read again.' : 'Please add the photo again.'}
         </p>
       )}
       {busy && (

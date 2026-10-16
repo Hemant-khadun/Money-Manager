@@ -24,6 +24,6 @@ export function useApp(): App {
 export function AppProvider({ children }: { children: ReactNode }) {
   const [month, setMonth] = useState(() => monthOf(new Date()));
   const [addExpenseOpen, setAddExpenseOpen] = useState(false);
-  const reader = useReceiptReader();
+  const reader = useReceiptReader({ keep: true });
   return <AppContext.Provider value={{ month, setMonth, reader, addExpenseOpen, setAddExpenseOpen }}>{children}</AppContext.Provider>;
 }

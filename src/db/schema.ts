@@ -1,5 +1,6 @@
 import Dexie, { type EntityTable } from 'dexie';
-import type { PaymentMethod, StoreHints } from '../parser/types';
+import type { OcrLine, PaymentMethod, StoreHints } from '../parser/types';
+import type { OcrStrategy, ReadReport } from '../pipeline/ocr-protocol';
 
 // Everything Money Manager knows lives here, in the phone's own storage (IndexedDB). Nothing is sent
 // anywhere. Money is always whole cents. Schema changes only ever add (db.version(n + 1)):
@@ -92,6 +93,21 @@ export interface Thumb {
   image: Blob;
 }
 
+/**
+ * A receipt photographed but not saved yet: its photos and what was read from them so far. Kept so
+ * that closing the page (a phone short of memory) loses nothing; deleted once the receipt is saved
+ * or thrown away. Never part of a backup.
+ */
+export interface PendingReceipt {
+  id: number;
+  /** In the order they were added. */
+  photos: Array<{ id: number; image: Blob; name: string }>;
+  /** What the reader got from each photo read so far, by photo id. */
+  readings: Record<number, { strategy: OcrStrategy; lines: OcrLine[]; report: ReadReport; ms: number }>;
+  addedAt: number;
+  joinedAutomatically?: boolean;
+}
+
 export interface Setting {
   key: string;
   value: unknown;
@@ -105,6 +121,7 @@ export const db = new Dexie('spent') as Dexie & {
   products: EntityTable<Product, 'key'>;
   thumbs: EntityTable<Thumb, 'receiptId'>;
   settings: EntityTable<Setting, 'key'>;
+  pending: EntityTable<PendingReceipt, 'id'>;
 };
 
 db.version(1).stores({
@@ -115,4 +132,8 @@ db.version(1).stores({
   products: 'key',
   thumbs: 'receiptId',
   settings: 'key',
+});
+
+db.version(2).stores({
+  pending: 'id',
 });

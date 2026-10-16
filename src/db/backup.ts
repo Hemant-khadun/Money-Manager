@@ -60,8 +60,10 @@ export async function restoreBackup(data: unknown): Promise<{ receipts: number }
   }
   if ((backup.version ?? 0) > VERSION) throw new BackupError('This backup was made by a newer version of Money Manager. Update the app first.');
   const thumbs = await Promise.all((backup.thumbs ?? []).map(async (t) => ({ receiptId: t.receiptId, image: await dataUrlToBlob(t.image) })));
-  await db.transaction('rw', db.tables, async () => {
-    await Promise.all(db.tables.map((t) => t.clear()));
+  // Receipts not saved yet (being read) stay as they are.
+  const tables = [db.categories, db.stores, db.receipts, db.items, db.products, db.thumbs, db.settings];
+  await db.transaction('rw', tables, async () => {
+    await Promise.all(tables.map((t) => t.clear()));
     await db.categories.bulkAdd(backup.categories ?? []);
     await db.stores.bulkAdd(backup.stores ?? []);
     await db.receipts.bulkAdd(backup.receipts ?? []);

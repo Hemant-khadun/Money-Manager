@@ -1,15 +1,18 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { describeError } from '../lib/describe-error';
 import { debugLog } from '../lib/debug-log';
 import type { OcrLine, ParsedReceipt } from '../parser/types';
 import { OcrClient, ReaderStopped, type OcrEngineInfo } from '../pipeline/ocr-client';
 import type { OcrStrategy, ReadReport } from '../pipeline/ocr-protocol';
+import { forgetPending, highestId, keepPending, loadPending, pendingKey, photoFile, toPending } from '../scan/pending';
 
 // Reading receipt photos, for the Scan screen and the reading test page. Photos are read one at a
 // time in the OCR worker. Photos added together are sorted once all are read: the parts of a long
 // receipt (photos that overlap) are joined into one receipt, the rest stay receipts of their own.
 // A photo added on its own is checked the same way against the receipt added just before it, so
 // the parts of a long receipt can be taken one after another without waiting.
+// With `keep`, receipts not saved yet are kept on the phone and come back when the page opens
+// again (scan/pending.ts).
 
 const ocr = new OcrClient();
 
@@ -67,6 +70,8 @@ export interface ReaderOptions {
   strategy?: OcrStrategy;
   /** Whether these receipts may still be joined automatically (the person hasn't worked on them yet). */
   canJoin?: (scanIds: number[]) => boolean;
+  /** Keep receipts not saved yet on the phone, and bring them back when the page opens again. */
+  keep?: boolean;
 }
 
 /** Photos added together, waiting until all are read to see which belong to the same receipt. */
@@ -111,6 +116,56 @@ export function useReceiptReader(options: ReaderOptions = {}) {
   const cache = useRef(new Map<number, Reading>());
   const batches = useRef(new Map<number, Batch>());
   const batchOf = useRef(new Map<number, number>());
+  /** What's kept on the phone of each receipt (pendingKey), by receipt id. */
+  const kept = useRef(new Map<number, string>());
+  /** Thrown away, but still kept on the phone until its Undo runs out. */
+  const discarded = useRef(new Set<number>());
+  /** How many receipts came back from last time; null until looked for. */
+  const [restored, setRestored] = useState<number | null>(options.keep ? null : 0);
+  const keep = !!options.keep;
+
+  // Brings back the receipts not saved last time. Already read: ready to check without reading again.
+  useEffect(() => {
+    if (!keep) return;
+    let cancelled = false;
+    loadPending().then(
+      (records) => {
+        if (cancelled) return;
+        nextId = Math.max(nextId, highestId(records) + 1);
+        const back = records.map((r): ReadScan => {
+          for (const [id, reading] of Object.entries(r.readings)) cache.current.set(Number(id), reading);
+          kept.current.set(r.id, pendingKey(r));
+          const photos = r.photos.map((p) => {
+            const file = photoFile(p);
+            return { id: p.id, file, url: URL.createObjectURL(file) };
+          });
+          return { id: r.id, photos, status: 'queued', addedAt: r.addedAt, joinedAutomatically: r.joinedAutomatically };
+        });
+        if (back.length) debugLog('app', `Brought back ${back.length === 1 ? 'a receipt' : `${back.length} receipts`} not saved last time`);
+        setScans((all) => [...all, ...back].sort((a, b) => b.addedAt - a.addedAt));
+        setRestored(back.length);
+        for (const scan of back) enqueue(scan.id, scan.photos);
+      },
+      (err) => {
+        debugLog('app', `Couldn't bring back the receipts not saved: ${describeError(err)}`);
+        if (!cancelled) setRestored(0);
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [keep]);
+
+  // Keeps each receipt on the phone as it changes (photos added, joined, split, taken out, read).
+  useEffect(() => {
+    if (!keep || restored === null) return;
+    const now = new Map(scans.map((s) => [s.id, toPending(s, (id) => cache.current.get(id))]));
+    const changed = [...now.values()].filter((p) => kept.current.get(p.id) !== pendingKey(p));
+    const gone = [...kept.current.keys()].filter((id) => !now.has(id) && !discarded.current.has(id));
+    for (const p of changed) kept.current.set(p.id, pendingKey(p));
+    for (const id of gone) kept.current.delete(id);
+    keepPending(changed, gone).catch((err) => debugLog('app', `Couldn't keep the receipts not saved yet: ${describeError(err)}`));
+  }, [keep, restored, scans]);
 
   const update = (id: number, patch: (s: ReadScan) => Partial<ReadScan>) =>
     setScans((all) => all.map((s) => (s.id === id ? { ...s, ...patch(s) } : s)));
@@ -136,7 +191,9 @@ export function useReceiptReader(options: ReaderOptions = {}) {
       if (queue.current.some((j) => j.scanId === job.scanId)) continue;
       update(job.scanId, () => ({ status: 'reading', error: undefined, problem: undefined, step: undefined, progress: undefined }));
       try {
-        const { backend } = await ocr.ready();
+        // Photos already read (brought back from last time, or added to) aren't read again.
+        const toRead = job.photos.some((p) => cache.current.get(p.id)?.strategy !== job.strategy);
+        const backend = toRead ? (await ocr.ready()).backend : undefined;
         for (const [k, photo] of job.photos.entries()) {
           if (cache.current.get(photo.id)?.strategy === job.strategy) continue;
           const prefix = job.photos.length > 1 ? `Photo ${k + 1} of ${job.photos.length}: ` : '';
@@ -159,7 +216,7 @@ export function useReceiptReader(options: ReaderOptions = {}) {
           step: undefined,
           progress: undefined,
           strategy: job.strategy,
-          backend,
+          ...(backend && { backend }),
           readings: Object.fromEntries(job.photos.map((p, i) => [p.id, readings[i]])),
           order: joined.order.map((i) => job.photos[i].id),
           joins: joined.joins,
@@ -362,16 +419,22 @@ export function useReceiptReader(options: ReaderOptions = {}) {
   function discard(scanId: number): () => void {
     const scan = scansRef.current.find((s) => s.id === scanId);
     if (!scan) return () => {};
+    discarded.current.add(scanId);
     takeOff(scanId);
-    const later = setTimeout(() => free(scan), UNDO_MS);
+    const later = setTimeout(() => {
+      free(scan);
+      discarded.current.delete(scanId);
+      if (kept.current.delete(scanId)) void forgetPending(scanId).catch((err) => debugLog('app', `Couldn't forget a receipt thrown away: ${describeError(err)}`));
+    }, UNDO_MS);
     return () => {
       clearTimeout(later);
+      discarded.current.delete(scanId);
       setScans((all) => (all.some((s) => s.id === scanId) ? all : [scan, ...all]));
       if (scan.status === 'queued' || scan.status === 'reading') enqueue(scan.id, scan.photos);
     };
   }
 
-  return { engine, engineError, scans, warmUp, add, addPhotosTo, joinInto, removePhoto, split, reread, remove, discard };
+  return { engine, engineError, scans, restored, warmUp, add, addPhotosTo, joinInto, removePhoto, split, reread, remove, discard };
 }
 
 export type ReceiptReader = ReturnType<typeof useReceiptReader>;
