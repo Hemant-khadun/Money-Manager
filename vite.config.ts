@@ -42,7 +42,8 @@ export default defineConfig({
       workbox: {
         // App shell is precached; OCR models + the ONNX runtime are cached on first scan instead.
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
-        globIgnores: ['**/models/**', '**/*.wasm'],
+        // Only the Latin Inter files: the Cyrillic, Greek and Vietnamese ones are never shown.
+        globIgnores: ['**/models/**', '**/*.wasm', '**/inter-{cyrillic,cyrillic-ext,greek,greek-ext,vietnamese}-*.woff2'],
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         runtimeCaching: [
           {

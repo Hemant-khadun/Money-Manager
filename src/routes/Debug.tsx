@@ -36,8 +36,16 @@ async function phoneFacts(): Promise<Facts> {
   } catch (err) {
     storage = `unknown: ${describeError(err)}`;
   }
+  let offline = 'not available';
+  try {
+    const registration = await navigator.serviceWorker?.getRegistration();
+    offline = navigator.serviceWorker?.controller ? 'running' : registration ? 'installed, starts next time' : 'not running';
+  } catch (err) {
+    offline = `unknown: ${describeError(err)}`;
+  }
   return [
     ['Version', __APP_VERSION__],
+    ['Offline helper', offline],
     ['Browser', navigator.userAgent],
     ['Screen', `${screen.width}×${screen.height} at ${devicePixelRatio}×, window ${innerWidth}×${innerHeight}`],
     ['Memory', nav.deviceMemory ? `about ${nav.deviceMemory} GB` : 'not told'],

@@ -10,6 +10,7 @@ import { AppProvider, useApp } from './AppContext';
 
 const ReadingTest = lazy(() => import('../spike/SpikePage').then((m) => ({ default: m.SpikePage })));
 const AddExpenseSheet = lazy(() => import('../routes/AddExpenseSheet').then((m) => ({ default: m.AddExpenseSheet })));
+const UpdateBar = lazy(() => import('../components/UpdateBar'));
 
 function Shell() {
   const { reader, addExpenseOpen } = useApp();
@@ -17,6 +18,7 @@ function Shell() {
   if (addExpenseOpen && !sheetUsed) setSheetUsed(true);
   const onTest = useLocation({ select: (l) => l.pathname.startsWith('/test') });
   const ready = reader.scans.filter((s) => s.status === 'done').length;
+  const reading = reader.scans.some((s) => s.status === 'queued' || s.status === 'reading');
   return (
     <>
       {/* The page the sheets scale back. */}
@@ -24,6 +26,9 @@ function Shell() {
         <Outlet />
       </div>
       {!onTest && <TabBar readyCount={ready} />}
+      <Suspense fallback={null}>
+        <UpdateBar reading={reading} />
+      </Suspense>
       {sheetUsed && (
         <Suspense fallback={null}>
           <AddExpenseSheet />
