@@ -22,8 +22,9 @@ function looseWords(norm: string): string[] {
 }
 
 const NAMES = KNOWN_SHOPS.flatMap((shop) =>
-  shop.spellings.map((spelling) => ({
+  [...shop.spellings.map((spelling) => ({ spelling, tagline: false })), ...(shop.taglines ?? []).map((spelling) => ({ spelling, tagline: true }))].map(({ spelling, tagline }) => ({
     shop,
+    tagline,
     key: looseWords(spelling).join(''),
     words: spelling.split(' ').length,
     printed: new RegExp(`\\b${spelling.replace(/ /g, '\\s*')}\\b`),
@@ -33,11 +34,12 @@ const NAMES = KNOWN_SHOPS.flatMap((shop) =>
 /** Letters a name may be off by. None for short names: too many ordinary words are one letter away ("SUPER" / "SUPER U"). */
 const slack = (length: number) => (length >= 9 ? 2 : length >= 7 ? 1 : 0);
 
-/** The known shop a line names, and whether it is printed exactly as the shop spells it. */
+/** The known shop a line names (by its name or a tagline), and whether it is the name printed exactly as the shop spells it. */
 function shopOn(line: Line): { shop: KnownShop; exact: boolean } | null {
   const words = looseWords(line.norm);
-  for (const { shop, key, words: count, printed } of NAMES) {
-    if (printed.test(line.norm)) return { shop, exact: true };
+  for (const { shop, tagline, key, words: count, printed } of NAMES) {
+    // A tagline names the shop but is never the name to keep, however well it reads.
+    if (printed.test(line.norm)) return { shop, exact: !tagline };
     const allowed = slack(key.length);
     for (let i = 0; i < words.length; i++) {
       // The reader may split a name ("WIN NERS") or run it into the next word ("WINNERSGRANDBAIE").

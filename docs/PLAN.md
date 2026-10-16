@@ -489,7 +489,7 @@ A review of the whole app (208 tests passing, type check clean) found gaps that 
 **Checked in headless Chrome at phone size (built app, `vite preview`), all passing:** backup reminder; "Check the date" in History; duplicate warning in Add expense; the problem toast in light and dark; restore question, "Restored 1 receipt", Undo; two photos kept while read and back after a reload; look-alike receipts marked; offline helper running and reported; the app opens offline; a new build shows the bar, and Reload takes it.
 
 **Next:**
-- **Step 6 (yours):** 30+ real receipts in `fixtures/receipts/`, `npm run eval`, result in §13.
+- **Step 6 (yours):** 30+ real receipts in `fixtures/receipts/`, `npm run eval`, result in §13. **2 so far** (2026-10-16, both Intermart): essentials 2/2; items add up 1/2. The long one (2 photos) is short Rs 413.95: three items are unreadable where the photos meet (both blurred), and "Rs44.00" read as "RSA4.00". Intermart is now known by "Partenaire Intermarché" when its logo can't be read.
 - **Step 7:** after step 6's result (parser work first if below the gate). Nothing started.
 - **Final check on real phones** (above), not yet done: the iPhone reload-while-reading case especially.
 - 5d asked for 5–10 KB of headroom: the Overview charts now load alongside the first database read, not with the app, so start-up JS is 144.3 KB (5.7 KB under). Not yet looked at in a browser. Loading the reader hook later would mean splitting it (it brings back unsaved photos at start-up); not done.

@@ -532,6 +532,11 @@ describe('known supermarket chains', () => {
     expect(name(`# TAYLOR SMITH RETAIL LTD\nWINNERS GRAND BAIE\n${rest}`)).toBe('Winners');
     expect(name(`# BEAU PLAN RETAIL LTD\n${rest}\nwww.winners.mu`)).toBe('Winners');
   });
+  it('knows Intermart by the "Partenaire Intermarché" under its logo, when the logo is unreadable', () => {
+    // As read from a real photo: the white-on-black logo came out as "INT".
+    expect(name(`INT\n# Pardenaire Intermarche\nBEAU PLAN DISTRIBUTION LTD\n${rest}`)).toBe('Intermart');
+    expect(name(`INT\n# Partenaire Intermarché\n${rest}`)).toBe('Intermart');
+  });
   it('keeps a name that reads right, branch and all', () => {
     expect(name(`# SUPER U FLACQ\n${rest}`)).toBe('Super U Flacq');
   });

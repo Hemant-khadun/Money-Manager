@@ -1,0 +1,195 @@
+{
+  "version": 1,
+  "name": "intermart-battery",
+  "capturedAt": "2026-10-16",
+  "ocr": {
+    "strategy": "per-box",
+    "backend": "webgpu",
+    "ms": 2428,
+    "report": {
+      "photoWidth": 720,
+      "photoHeight": 1280,
+      "lineHeight": 18,
+      "tilt": 0.1,
+      "zoom": 1.9,
+      "parts": 2,
+      "closerLooks": 9,
+      "improved": 6,
+      "unclearLeft": 3,
+      "leftOut": true
+    },
+    "lines": [
+      {
+        "text": "INT",
+        "confidence": 0.8084320028622946,
+        "y": 0,
+        "height": 40
+      },
+      {
+        "text": "Pardenaire Intermarche",
+        "confidence": 0.9564332636919889,
+        "y": 100,
+        "height": 44
+      },
+      {
+        "text": "BEAU PLAN DISTRIBUTION LTD",
+        "confidence": 0.9857295233270397,
+        "y": 200,
+        "height": 40
+      },
+      {
+        "text": "Mahogany Shopping Promenade",
+        "confidence": 0.9616062177552117,
+        "y": 300,
+        "height": 45
+      },
+      {
+        "text": "Beau Plan Pamplemousses",
+        "confidence": 0.9453484934309254,
+        "y": 400,
+        "height": 44
+      },
+      {
+        "text": "BRN:C18161270 VAT:27670358",
+        "confidence": 0.9806089043617249,
+        "y": 500,
+        "height": 37
+      },
+      {
+        "text": "TEL:20 7788 /FAX:245 8989",
+        "confidence": 0.9088614257899198,
+        "y": 600,
+        "height": 41
+      },
+      {
+        "text": "VAT INVOICE",
+        "confidence": 0.9203972762281244,
+        "y": 700,
+        "height": 36
+      },
+      {
+        "text": "9 4006002000170 3 8",
+        "confidence": 0.9961098581552505,
+        "y": 800,
+        "height": 18.5
+      },
+      {
+        "text": "C7/10/2025 13:07:29Sales T1cket No. 170318",
+        "confidence": 0.975586420013791,
+        "y": 900,
+        "height": 32
+      },
+      {
+        "text": "Cashier 104 104 104",
+        "confidence": 0.9979963103930155,
+        "y": 1000,
+        "height": 24.5
+      },
+      {
+        "text": "E0075sKm) 00148925 3.0.16-23.27 Pos 006",
+        "confidence": 0.9889451547672874,
+        "y": 1100,
+        "height": 24.5
+      },
+      {
+        "text": "Ot Description UP TTL",
+        "confidence": 0.918826060295105,
+        "y": 1200,
+        "height": 29
+      },
+      {
+        "text": "A 1x VARTA MAXI TECH 470 Rs229.00 Rs229.00",
+        "confidence": 0.9530634170486814,
+        "y": 1300,
+        "height": 26
+      },
+      {
+        "text": "LINE PRODUCT",
+        "confidence": 0.9973863146521829,
+        "y": 1400,
+        "height": 31
+      },
+      {
+        "text": "AL. Rate Am.NET Am . VAT Am.T",
+        "confidence": 0.871492224761418,
+        "y": 1500,
+        "height": 31
+      },
+      {
+        "text": "IL",
+        "confidence": 0.676659882068634,
+        "y": 1600,
+        "height": 28
+      },
+      {
+        "text": "15% Rs199.13 Rs29.87 Rs229.00",
+        "confidence": 0.9600972074728745,
+        "y": 1700,
+        "height": 26
+      },
+      {
+        "text": "AET TOTAL Rs199.13",
+        "confidence": 0.9709573177730336,
+        "y": 1800,
+        "height": 27
+      },
+      {
+        "text": "NET ALL TAX, INCL. Rs229.00",
+        "confidence": 0.9376559922328362,
+        "y": 1900,
+        "height": 31
+      },
+      {
+        "text": "SBM Rs229.00",
+        "confidence": 0.9731950055469166,
+        "y": 2000,
+        "height": 29.5
+      },
+      {
+        "text": "Frint regeiot: 1x",
+        "confidence": 0.8592932417112238,
+        "y": 2100,
+        "height": 28
+      },
+      {
+        "text": "MERCI DE VOTRE VISITE ET A BIENTOT!",
+        "confidence": 0.9678872755595616,
+        "y": 2200,
+        "height": 35
+      },
+      {
+        "text": "PRESENTER TICKET ORIGINAL POUR TOUTES",
+        "confidence": 0.9771129617819915,
+        "y": 2300,
+        "height": 26
+      },
+      {
+        "text": "REClAMATIONS DANS UN DELAI DE 5 JOURS",
+        "confidence": 0.8370716394604863,
+        "y": 2400,
+        "height": 27
+      },
+      {
+        "text": "Voii conditions à l'accuefl",
+        "confidence": 0.90724453219661,
+        "y": 2500,
+        "height": 28
+      },
+      {
+        "text": "Fiscalise",
+        "confidence": 0.9300891823238797,
+        "y": 2600,
+        "height": 28
+      }
+    ]
+  },
+  "expected": {
+    "checked": true,
+    "kind": "supermarket",
+    "store": "Intermart",
+    "date": "2025-10-07",
+    "total": 22900,
+    "payment": "card",
+    "itemized": true
+  }
+}

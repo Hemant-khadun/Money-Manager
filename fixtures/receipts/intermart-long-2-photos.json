@@ -1,0 +1,1767 @@
+{
+  "version": 1,
+  "name": "intermart-long-2-photos",
+  "capturedAt": "2026-10-16",
+  "ocr": {
+    "strategy": "per-box",
+    "backend": "webgpu",
+    "ms": 5349,
+    "lines": [
+      {
+        "text": "INTERMART",
+        "confidence": 0.9973194665378995,
+        "y": 0,
+        "height": 77
+      },
+      {
+        "text": "Pantenaine Intergarche",
+        "confidence": 0.9165197123180736,
+        "y": 100,
+        "height": 31
+      },
+      {
+        "text": "BEAU PLAN DISTRIBUTION LID",
+        "confidence": 0.9851847864114321,
+        "y": 200,
+        "height": 36
+      },
+      {
+        "text": "Mahogany Shopping Promenade",
+        "confidence": 0.958145382227721,
+        "y": 300,
+        "height": 36
+      },
+      {
+        "text": "Beau Plan Pamplemousses",
+        "confidence": 0.9219724095386007,
+        "y": 400,
+        "height": 36
+      },
+      {
+        "text": "BRN:C18161270 / VAT:27670358",
+        "confidence": 0.9868629383189338,
+        "y": 500,
+        "height": 32
+      },
+      {
+        "text": "TEL:260 7788 / FAX:245 B989",
+        "confidence": 0.9704020928453516,
+        "y": 600,
+        "height": 32
+      },
+      {
+        "text": "VAT INVOICE",
+        "confidence": 0.990005070512945,
+        "y": 700,
+        "height": 26
+      },
+      {
+        "text": "800300008",
+        "confidence": 0.9940920008553399,
+        "y": 800,
+        "height": 17
+      },
+      {
+        "text": "27/09/2026 17:41:14 Sales Ticket No. 85483",
+        "confidence": 0.9788016478220621,
+        "y": 900,
+        "height": 40
+      },
+      {
+        "text": "Cashter 103 103 103",
+        "confidence": 0.972202354007297,
+        "y": 1000,
+        "height": 32
+      },
+      {
+        "text": "B00751HK7 00069818 3.0.16-23.27 Pos 008",
+        "confidence": 0.947162328582061,
+        "y": 1100,
+        "height": 36
+      },
+      {
+        "text": "Loyalty customer nb 0000000000000",
+        "confidence": 0.9877284280955791,
+        "y": 1200,
+        "height": 32.5
+      },
+      {
+        "text": "old points balance 0",
+        "confidence": 0.9432106589277586,
+        "y": 1300,
+        "height": 32.5
+      },
+      {
+        "text": "T Qt Description UP TTL",
+        "confidence": 0.9827739454451061,
+        "y": 1400,
+        "height": 28
+      },
+      {
+        "text": "B 12x PERETTE VANILLE 250 Rs34.50 Rs414.00",
+        "confidence": 0.955767634510994,
+        "y": 1500,
+        "height": 35
+      },
+      {
+        "text": "A 1× LAYS PAPRIKA 130G Rs109.95 Rs109.95",
+        "confidence": 0.9616787204375634,
+        "y": 1600,
+        "height": 27
+      },
+      {
+        "text": "B Ix TETLEY TEA B BLK TE Rs319.30 Rs319.30",
+        "confidence": 0.9201730844520387,
+        "y": 1700,
+        "height": 32
+      },
+      {
+        "text": "A 1x MIK CLASSIC CHDCOLA Rs239.95 Rs239.95",
+        "confidence": 0.9626266601539794,
+        "y": 1800,
+        "height": 28
+      },
+      {
+        "text": "B 1x MAREMER 0RE0 F1SH F Rs259.95 Rs259.95",
+        "confidence": 0.9589959652650923,
+        "y": 1900,
+        "height": 28
+      },
+      {
+        "text": "B C/CHOICE LAMB SHLD FZ AUS",
+        "confidence": 0.9155520415306091,
+        "y": 2000,
+        "height": 26
+      },
+      {
+        "text": "0.714 kg Rs559.90/kg Rs399.53",
+        "confidence": 0.980473341686385,
+        "y": 2100,
+        "height": 24.5
+      },
+      {
+        "text": "B I/SEAFGOD LUNE DOREE SLIC",
+        "confidence": 0.9167813750413748,
+        "y": 2200,
+        "height": 27.5
+      },
+      {
+        "text": "0.664 kg Rs336.00/kg Rs223.10",
+        "confidence": 0.9809453231947762,
+        "y": 2300,
+        "height": 24.5
+      },
+      {
+        "text": "B C/CHOICE LAMB SHLD FZ AUS",
+        "confidence": 0.9691863587269416,
+        "y": 2400,
+        "height": 28.5
+      },
+      {
+        "text": "0.676 kg Rs559.90/kg Rs378.49",
+        "confidence": 0.984853486929621,
+        "y": 2500,
+        "height": 29.5
+      },
+      {
+        "text": "B C/CHOICE LAMB SHLD FZ AUS",
+        "confidence": 0.8760957305247967,
+        "y": 2600,
+        "height": 29.5
+      },
+      {
+        "text": "0.647 kg Rs559.90/kg Rs362.34",
+        "confidence": 0.9982745796442032,
+        "y": 2700,
+        "height": 27
+      },
+      {
+        "text": "A 2x 0LD EL PAS0 6 WRAPS Rs229.95 Rs459.90",
+        "confidence": 0.9444348812103271,
+        "y": 2800,
+        "height": 28
+      },
+      {
+        "text": "B 1x INT PIZZA BASE X2 Rs45.00 Rs45.00",
+        "confidence": 0.9412685068877967,
+        "y": 2900,
+        "height": 27
+      },
+      {
+        "text": "4 1x SAMYANG CHKN DMPLNG Rs374.95 Rs374.95",
+        "confidence": 0.9378225689842588,
+        "y": 3000,
+        "height": 26
+      },
+      {
+        "text": "A 2x 365JR EDC NATURELLE Rs67.00 Rs134.00",
+        "confidence": 0.9839114401398635,
+        "y": 3100,
+        "height": 26
+      },
+      {
+        "text": "A 2x APTA PAPIER CUISSON Rs69.95 Rs139.90",
+        "confidence": 0.9810365452999021,
+        "y": 3200,
+        "height": 26
+      },
+      {
+        "text": "B 1x GF BURGER X6 345GM Rs53.90 Rs63.90",
+        "confidence": 0.9621062498343619,
+        "y": 3300,
+        "height": 26.5
+      },
+      {
+        "text": "B 2x GF HOT D0G ROLLS 200G Rs34.95 Rs69.90",
+        "confidence": 0.9439013940947396,
+        "y": 3400,
+        "height": 26
+      },
+      {
+        "text": "A 1x CInDEREllA S.CRUnCHy Rs44.00 Rs44.00",
+        "confidence": 0.855578354219111,
+        "y": 3500,
+        "height": 23
+      },
+      {
+        "text": "A 1x E BRAND CHIA SEEDS Rs149.50 Rs149.50",
+        "confidence": 0.9723257117155122,
+        "y": 3600,
+        "height": 26
+      },
+      {
+        "text": "B APOLLO CURRY _85G Rs7.95 Rs63.60",
+        "confidence": 0.9104398675262928,
+        "y": 3700,
+        "height": 27
+      },
+      {
+        "text": "8x",
+        "confidence": 0.8977778355280558,
+        "y": 3800,
+        "height": 22
+      },
+      {
+        "text": "B 6x APoll0 CHICkeN 85G Rs7.95 Rs47.70",
+        "confidence": 0.8564559602075152,
+        "y": 3900,
+        "height": 28
+      },
+      {
+        "text": "1x KING BRAND LENTIlLE B Rs34.95",
+        "confidence": 0.895013819138209,
+        "y": 4000,
+        "height": 32
+      },
+      {
+        "text": "1x",
+        "confidence": 0.8549774487813314,
+        "y": 4100,
+        "height": 22
+      },
+      {
+        "text": "C BEST FOOD LENTILLE BL Rs38.50 Rs38.50",
+        "confidence": 0.8867267112474184,
+        "y": 4200,
+        "height": 27
+      },
+      {
+        "text": "C 1x BEST",
+        "confidence": 0.9785616993904114,
+        "y": 4300,
+        "height": 26
+      },
+      {
+        "text": "C 1× ORIENT DHOLL GRAMME 5 Rs35.00 Rs35.00",
+        "confidence": 0.9235833897477105,
+        "y": 4400,
+        "height": 37
+      },
+      {
+        "text": "C Ix FLAMBOYANT EMBERIQUE Rs46.00 Rs46.00",
+        "confidence": 0.9716307070197129,
+        "y": 4500,
+        "height": 29.5
+      },
+      {
+        "text": "B Ix AlPa HARIcot BlANc 50 Rs42.50 Rs42.50",
+        "confidence": 0.8524547403766995,
+        "y": 4600,
+        "height": 37
+      },
+      {
+        "text": "B 1× ALPA LENTILLE ROUGE 5 Rs26.75 Rs26.75",
+        "confidence": 0.9314213409310296,
+        "y": 4700,
+        "height": 40
+      },
+      {
+        "text": "C 2x SIBON DHOLL GRAMME 50 Rs34.00 Rs68.00",
+        "confidence": 0.8967278046267373,
+        "y": 4800,
+        "height": 41
+      },
+      {
+        "text": "c 1x BEST FOOD POP CORN 50 Rs38.50 Rs38.50",
+        "confidence": 0.9649349538291373,
+        "y": 4900,
+        "height": 29.5
+      },
+      {
+        "text": "C 1x BEST FOOD LENTILLE RO Rs28.25 Rs28.25",
+        "confidence": 0.8772387271974145,
+        "y": 5000,
+        "height": 35
+      },
+      {
+        "text": "B C/CHOICE LAMB SHLD FZ AUS",
+        "confidence": 0.993634446309163,
+        "y": 5100,
+        "height": 33
+      },
+      {
+        "text": "0.66 kg Rs559.90/kg Rs369.53",
+        "confidence": 0.9815876152780321,
+        "y": 5200,
+        "height": 30
+      },
+      {
+        "text": "2× BOKOMO N S MORNING Rs164.00 Rs328.00",
+        "confidence": 0.9100717571941582,
+        "y": 5300,
+        "height": 23
+      },
+      {
+        "text": "A 1x PANZANI TORTI 5O0G Rs99,95 Rs99.95",
+        "confidence": 0.9385101026610324,
+        "y": 5400,
+        "height": 29.5
+      },
+      {
+        "text": "B 4x F/STEAD MINI CHK FRA Rs96.00 Rs384.00",
+        "confidence": 0.953374662569591,
+        "y": 5500,
+        "height": 28
+      },
+      {
+        "text": "BEST FOOD GRAMME SEC Rs39.50 R839.50",
+        "confidence": 0.9687307664326259,
+        "y": 5600,
+        "height": 20.5
+      },
+      {
+        "text": "18.",
+        "confidence": 0.8627679149309794,
+        "y": 5700,
+        "height": 14
+      },
+      {
+        "text": "B 1x MELBOURNE CHEDDAR CHE Rs75.95 Rs75.95",
+        "confidence": 0.9745314291545323,
+        "y": 5800,
+        "height": 32
+      },
+      {
+        "text": "A Ix FREEDENT MENTHE VER Rs138.00 Rs138.00",
+        "confidence": 0.9626153452055795,
+        "y": 5900,
+        "height": 36
+      },
+      {
+        "text": "A",
+        "confidence": 0.9660529494285583,
+        "y": 6000,
+        "height": 18
+      },
+      {
+        "text": "A 1x PANZANI FARFALLE SE Rs135.00 Rs135.00",
+        "confidence": 0.9637258421807062,
+        "y": 6100,
+        "height": 37
+      },
+      {
+        "text": "B 1x SAMYANG TANGLE GARLIC Rs95.00 Rs95.00",
+        "confidence": 0.9421758736882891,
+        "y": 6200,
+        "height": 50
+      },
+      {
+        "text": "B 1x SAMYANg TANGLE CRMY M Rs95.00 Rs95.00",
+        "confidence": 0.886626050239656,
+        "y": 6300,
+        "height": 24
+      },
+      {
+        "text": "A 1× MAGGI SOUP POULE VRMC Rs44.00 Rs44.00",
+        "confidence": 0.9706430463563829,
+        "y": 6400,
+        "height": 32
+      },
+      {
+        "text": "A 1x JULIE SUGAR CRACKER Rs119.95 Rs119.95",
+        "confidence": 0.9638455779779525,
+        "y": 6500,
+        "height": 37
+      },
+      {
+        "text": "1x LEGER SAUCE BECHAME R854.95 R854.95",
+        "confidence": 0.9674813119140832,
+        "y": 6600,
+        "height": 20.5
+      },
+      {
+        "text": "A 1x C LEG",
+        "confidence": 0.8419909358024598,
+        "y": 6700,
+        "height": 19
+      },
+      {
+        "text": "A Ix C LEGER SAUCE HOLLAND R654.95 R654.95",
+        "confidence": 0.9340234154309982,
+        "y": 6800,
+        "height": 17.5
+      },
+      {
+        "text": "D CUARD.T0 RAB4 00 PA169:60",
+        "confidence": 0.699402085863627,
+        "y": 6900,
+        "height": 12
+      },
+      {
+        "text": "GI ENOY T",
+        "confidence": 0.7592363825866154,
+        "y": 7000,
+        "height": 14
+      },
+      {
+        "text": "LAM ABRE",
+        "confidence": 0.770983657666615,
+        "y": 7100,
+        "height": 13.5
+      },
+      {
+        "text": "IN EA MOTGNONE NHO RIZA3S",
+        "confidence": 0.5759038666020269,
+        "y": 7200,
+        "height": 14
+      },
+      {
+        "text": "IX PAE NET WIPES X100.R0 R599.95 R699.90",
+        "confidence": 0.8085719897515244,
+        "y": 7300,
+        "height": 14
+      },
+      {
+        "text": "6x TROPIUAL TUINA FLAKES R617.95 RS107.70",
+        "confidence": 0.8632423752232602,
+        "y": 7400,
+        "height": 14
+      },
+      {
+        "text": "EB BAKTNG SODA FLACON RS44 OO RSA4.00",
+        "confidence": 0.8360520424069585,
+        "y": 7500,
+        "height": 13
+      },
+      {
+        "text": "18 CLASS1C GOLD BA Rs1.722.90 R81,722.90",
+        "confidence": 0.9180077895140036,
+        "y": 7600,
+        "height": 15.5
+      },
+      {
+        "text": "48 BEAURIVAGE SARDINE IN R824.10 RS96.40",
+        "confidence": 0.8820858765871097,
+        "y": 7700,
+        "height": 17.5
+      },
+      {
+        "text": "28 M RECIPE GINGER PAST Rs93.90 Rs186.00",
+        "confidence": 0.9344473060889121,
+        "y": 7800,
+        "height": 17.5
+      },
+      {
+        "text": "2x REGAL PEAS & CARROTS R831.00 Rs62.00",
+        "confidence": 0.9478731798498254,
+        "y": 7900,
+        "height": 17
+      },
+      {
+        "text": "Ix TELLY VEG MAY0 470M Rs180.00 Rs180.00",
+        "confidence": 0.9440592676401138,
+        "y": 8000,
+        "height": 18
+      },
+      {
+        "text": "A 1x EB ESSENCE CUL INAIRE RS52.00 RS52.00",
+        "confidence": 0.9176193141355747,
+        "y": 8100,
+        "height": 17.5
+      },
+      {
+        "text": "A 1x YE0S DARK S0Y SAUCE 1 Rs72.00 Rs72.00",
+        "confidence": 0.9353580261979785,
+        "y": 8200,
+        "height": 19
+      },
+      {
+        "text": "A 1x W HUP FRIED N00DLE SC Rs76.95 Rs76.95",
+        "confidence": 0.9323561290899912,
+        "y": 8300,
+        "height": 19
+      },
+      {
+        "text": "B 3x SUNBR1DGE SLICED MUSH Rs19.95 Rs39.90",
+        "confidence": 0.9443092154605048,
+        "y": 8400,
+        "height": 19
+      },
+      {
+        "text": "A 1x YUMMY CUSTARD POWDER Rs94.65 Rs94.65",
+        "confidence": 0.9719810573066153,
+        "y": 8500,
+        "height": 19
+      },
+      {
+        "text": "A Ix SUMO DISH WASH PST LE Rs67 95 Rs67.95",
+        "confidence": 0.9630362348897117,
+        "y": 8600,
+        "height": 19
+      },
+      {
+        "text": "A",
+        "confidence": 0.992587149143219,
+        "y": 8700,
+        "height": 17
+      },
+      {
+        "text": "1x CHAB VERMICELLE MUL Rs109.95 Rs109.95",
+        "confidence": 0.9518412560224533,
+        "y": 8800,
+        "height": 19
+      },
+      {
+        "text": "A",
+        "confidence": 0.9696940183639526,
+        "y": 8900,
+        "height": 19
+      },
+      {
+        "text": "1× MAGGI CHICKEn CUBE 60 Rs45.00 Rs45.00",
+        "confidence": 0.8897621423006058,
+        "y": 9000,
+        "height": 19
+      },
+      {
+        "text": "B Ix SENS0DYNE TP C0MP P Rs280.00 Rs280.00",
+        "confidence": 0.957103168964386,
+        "y": 9100,
+        "height": 18
+      },
+      {
+        "text": "1x MOIRS ESSENCE LEMON 3 Rs34.50 Rs34.50",
+        "confidence": 0.971943573653698,
+        "y": 9200,
+        "height": 19
+      },
+      {
+        "text": "A 1x DESIAM RED CHILI SR Rs105.00 Rs105.00",
+        "confidence": 0.9817837026061081,
+        "y": 9300,
+        "height": 20.5
+      },
+      {
+        "text": "A 1x COCON PUDDNG STRAWBER Rs96.00 Rs96.00",
+        "confidence": 0.9823333516716957,
+        "y": 9400,
+        "height": 19
+      },
+      {
+        "text": "A 1x LIFE HOSIN SAUCE 250G Rs73.50 Rs73.50",
+        "confidence": 0.9870944122473398,
+        "y": 9500,
+        "height": 19
+      },
+      {
+        "text": "1x SUNGOLD TOMATO SAUCE Rs78.00 Rs78.00",
+        "confidence": 0.9600553619555938,
+        "y": 9600,
+        "height": 18
+      },
+      {
+        "text": "A1",
+        "confidence": 0.8887817561626434,
+        "y": 9700,
+        "height": 19
+      },
+      {
+        "text": "A 6x KO STORAGE JAR PP TW Rs79.95 Rs479.70",
+        "confidence": 0.9683087177392913,
+        "y": 9800,
+        "height": 18
+      },
+      {
+        "text": "A 1x HAPPY SPICY PEANUT 15 Rs49.95 Rs49.95",
+        "confidence": 0.9791098905772697,
+        "y": 9900,
+        "height": 18.5
+      },
+      {
+        "text": "B 1x COLGATE TP JR MENTH Rs110.00 Rs110.00",
+        "confidence": 0.9654560089111328,
+        "y": 10000,
+        "height": 20
+      },
+      {
+        "text": "B 1x LENOR JASMIN ROSE 1 Rs194.95 Rs194.95",
+        "confidence": 0.9698426519952169,
+        "y": 10100,
+        "height": 22
+      },
+      {
+        "text": "B 1x ST EL0I MAIS DOU SANS Rs47.95 Rs47.95",
+        "confidence": 0.9480189564751416,
+        "y": 10200,
+        "height": 20.5
+      },
+      {
+        "text": "A 1x LU PRINCE TOUT CHOC Rs130.00 Rs130.00",
+        "confidence": 0.9671249866485596,
+        "y": 10300,
+        "height": 18
+      },
+      {
+        "text": "a 2x JEWEL BL0C WC R EAU Rs110.00 Rs220.00",
+        "confidence": 0.9648441119891841,
+        "y": 10400,
+        "height": 18
+      },
+      {
+        "text": "A 1x LU PRINCE VANILLE 3 Rs130.00 Rs130.00",
+        "confidence": 0.9902939304709435,
+        "y": 10500,
+        "height": 18
+      },
+      {
+        "text": "A 1x TOP BGT DESO MARINE 3 Rs94.95 Rs94.95",
+        "confidence": 0.9399692095816136,
+        "y": 10600,
+        "height": 18
+      },
+      {
+        "text": "A",
+        "confidence": 0.9612270593643188,
+        "y": 10700,
+        "height": 18
+      },
+      {
+        "text": "1x KO SIAKI UTILITY KN Rs149.95 Rs149.95",
+        "confidence": 0.9527643531560898,
+        "y": 10800,
+        "height": 18
+      },
+      {
+        "text": "A 1x AQ CABLE TIES (WHIT Rs115.00 Rs115.00",
+        "confidence": 0.9638595169498807,
+        "y": 10900,
+        "height": 18
+      },
+      {
+        "text": "A 1x EH SCISSORS SS SET Rs109 95 Ro109.95",
+        "confidence": 0.9053866180934405,
+        "y": 11000,
+        "height": 18.5
+      },
+      {
+        "text": "A ESKO N - 4 RsJU4.00 Rs304.00",
+        "confidence": 0.8686078168727733,
+        "y": 11100,
+        "height": 18
+      },
+      {
+        "text": "A 1× JULIES WHEAT CRACKE Rs123.00 Rs123.00",
+        "confidence": 0.9257254196064812,
+        "y": 11200,
+        "height": 23
+      },
+      {
+        "text": "A 1X KO UTILITY KNIFE SS Rs149.95 Rs149.95",
+        "confidence": 0.9480679687999544,
+        "y": 11300,
+        "height": 20.5
+      },
+      {
+        "text": "1x CBON VSL POMME 5L",
+        "confidence": 0.9274893671274185,
+        "y": 11400,
+        "height": 18
+      },
+      {
+        "text": "A1 Rs249.95 Rs249.95",
+        "confidence": 0.974463795360766,
+        "y": 11500,
+        "height": 18.5
+      },
+      {
+        "text": "84 LINES 134 PRODUCTS",
+        "confidence": 0.9923899650573731,
+        "y": 11600,
+        "height": 20.5
+      },
+      {
+        "text": "V.A.T. Rate Am.NeT Am.VAT Am.T",
+        "confidence": 0.9233907529940972,
+        "y": 11700,
+        "height": 23
+      },
+      {
+        "text": "TL",
+        "confidence": 0.9746720492839813,
+        "y": 11800,
+        "height": 26
+      },
+      {
+        "text": "B 0XRs6,591.29 Rs0.00 Rs6,591.29",
+        "confidence": 0.9587691981216957,
+        "y": 11900,
+        "height": 22
+      },
+      {
+        "text": "0% Rs842.70 Rs0.00 Rs842.70",
+        "confidence": 0.9937781977653504,
+        "y": 12000,
+        "height": 22
+      },
+      {
+        "text": "A 15%Rs5,20.19 Rs784.56 Rs6,014.75",
+        "confidence": 0.9005569594521676,
+        "y": 12100,
+        "height": 22
+      },
+      {
+        "text": "NET TOTAL Rs12,664.18",
+        "confidence": 0.9967781871557235,
+        "y": 12200,
+        "height": 22
+      },
+      {
+        "text": "NET ALL TAX, INCL. Rs13,448.74",
+        "confidence": 0.9522852733217436,
+        "y": 12300,
+        "height": 19
+      },
+      {
+        "text": "MY.T Rs13,448.74",
+        "confidence": 0.9654560565948487,
+        "y": 12400,
+        "height": 24
+      },
+      {
+        "text": "Print receipt: 1x",
+        "confidence": 0.9786936290123883,
+        "y": 12500,
+        "height": 23
+      },
+      {
+        "text": "MERCI DE VOTRE VISITE ET A BIENTOT!",
+        "confidence": 0.9877715127808707,
+        "y": 12600,
+        "height": 32
+      },
+      {
+        "text": "PRESENTER TICKET ORIGINAL POUR TOUTES",
+        "confidence": 0.9833140663198523,
+        "y": 12700,
+        "height": 36
+      },
+      {
+        "text": "RECLAMATIONS DANS UN DELAI DE 5 JOURS",
+        "confidence": 0.9487649750065159,
+        "y": 12800,
+        "height": 40
+      },
+      {
+        "text": "Vofr conditions à 1'accue1l",
+        "confidence": 0.7762088968797967,
+        "y": 12900,
+        "height": 36
+      },
+      {
+        "text": "Fiscalisé",
+        "confidence": 0.9843160841200087,
+        "y": 13000,
+        "height": 32
+      },
+      {
+        "text": "OHen",
+        "confidence": 0.5518658608198166,
+        "y": 13100,
+        "height": 58
+      }
+    ],
+    "photos": [
+      {
+        "name": "WhatsApp Image 2026-10-15 at 17.47.56.jpeg",
+        "lines": [
+          {
+            "text": "INTERMART",
+            "confidence": 0.9973194665378995,
+            "y": 190.5,
+            "height": 77
+          },
+          {
+            "text": "Pantenaine Intergarche",
+            "confidence": 0.9165197123180736,
+            "y": 295.5,
+            "height": 31
+          },
+          {
+            "text": "BEAU PLAN DISTRIBUTION LID",
+            "confidence": 0.9851847864114321,
+            "y": 332.5,
+            "height": 36
+          },
+          {
+            "text": "Mahogany Shopping Promenade",
+            "confidence": 0.958145382227721,
+            "y": 359.5,
+            "height": 36
+          },
+          {
+            "text": "Beau Plan Pamplemousses",
+            "confidence": 0.9219724095386007,
+            "y": 388.5,
+            "height": 36
+          },
+          {
+            "text": "BRN:C18161270 / VAT:27670358",
+            "confidence": 0.9868629383189338,
+            "y": 416.5,
+            "height": 32
+          },
+          {
+            "text": "TEL:260 7788 / FAX:245 B989",
+            "confidence": 0.9704020928453516,
+            "y": 444.5,
+            "height": 32
+          },
+          {
+            "text": "VAT INVOICE",
+            "confidence": 0.990005070512945,
+            "y": 477.5,
+            "height": 26
+          },
+          {
+            "text": "800300008",
+            "confidence": 0.9940920008553399,
+            "y": 577.5,
+            "height": 17
+          },
+          {
+            "text": "27/09/2026 17:41:14 Sales Ticket No. 85483",
+            "confidence": 0.9788016478220621,
+            "y": 611.5,
+            "height": 40
+          },
+          {
+            "text": "Cashter 103 103 103",
+            "confidence": 0.972202354007297,
+            "y": 641.5,
+            "height": 32
+          },
+          {
+            "text": "B00751HK7 00069818 3.0.16-23.27 Pos 008",
+            "confidence": 0.947162328582061,
+            "y": 668.5,
+            "height": 36
+          },
+          {
+            "text": "Loyalty customer nb 0000000000000",
+            "confidence": 0.9877284280955791,
+            "y": 730.5,
+            "height": 32.5
+          },
+          {
+            "text": "old points balance 0",
+            "confidence": 0.9432106589277586,
+            "y": 760.5,
+            "height": 32.5
+          },
+          {
+            "text": "T Qt Description UP TTL",
+            "confidence": 0.9827739454451061,
+            "y": 819.5,
+            "height": 28
+          },
+          {
+            "text": "B 12x PERETTE VANILLE 250 Rs34.50 Rs414.00",
+            "confidence": 0.955767634510994,
+            "y": 844.5,
+            "height": 35
+          },
+          {
+            "text": "A 1× LAYS PAPRIKA 130G Rs109.95 Rs109.95",
+            "confidence": 0.9616787204375634,
+            "y": 873.5,
+            "height": 27
+          },
+          {
+            "text": "B Ix TETLEY TEA B BLK TE Rs319.30 Rs319.30",
+            "confidence": 0.9201730844520387,
+            "y": 901.5,
+            "height": 32
+          },
+          {
+            "text": "A 1x MIK CLASSIC CHDCOLA Rs239.95 Rs239.95",
+            "confidence": 0.9626266601539794,
+            "y": 931.5,
+            "height": 28
+          },
+          {
+            "text": "B 1x MAREMER 0RE0 F1SH F Rs259.95 Rs259.95",
+            "confidence": 0.9589959652650923,
+            "y": 958.5,
+            "height": 28
+          },
+          {
+            "text": "B C/CHOICE LAMB SHLD FZ AUS",
+            "confidence": 0.9155520415306091,
+            "y": 987.5,
+            "height": 26
+          },
+          {
+            "text": "0.714 kg Rs559.90/kg Rs399.53",
+            "confidence": 0.980473341686385,
+            "y": 1017.5,
+            "height": 24.5
+          },
+          {
+            "text": "B I/SEAFGOD LUNE DOREE SLIC",
+            "confidence": 0.9167813750413748,
+            "y": 1043.5,
+            "height": 27.5
+          },
+          {
+            "text": "0.664 kg Rs336.00/kg Rs223.10",
+            "confidence": 0.9809453231947762,
+            "y": 1076.5,
+            "height": 24.5
+          },
+          {
+            "text": "B C/CHOICE LAMB SHLD FZ AUS",
+            "confidence": 0.9691863587269416,
+            "y": 1101.5,
+            "height": 28.5
+          },
+          {
+            "text": "0.676 kg Rs559.90/kg Rs378.49",
+            "confidence": 0.984853486929621,
+            "y": 1131.5,
+            "height": 29.5
+          },
+          {
+            "text": "B C/CHOICE LAMB SHLD FZ AUS",
+            "confidence": 0.8760957305247967,
+            "y": 1160,
+            "height": 29.5
+          },
+          {
+            "text": "0.647 kg Rs559.90/kg Rs362.34",
+            "confidence": 0.9982745796442032,
+            "y": 1194,
+            "height": 27
+          },
+          {
+            "text": "A 2x 0LD EL PAS0 6 WRAPS Rs229.95 Rs459.90",
+            "confidence": 0.9444348812103271,
+            "y": 1225,
+            "height": 28
+          },
+          {
+            "text": "B 1x INT PIZZA BASE X2 Rs45.00 Rs45.00",
+            "confidence": 0.9412685068877967,
+            "y": 1255,
+            "height": 27
+          },
+          {
+            "text": "4 1x SAMYANG CHKN DMPLNG Rs374.95 Rs374.95",
+            "confidence": 0.9378225689842588,
+            "y": 1288,
+            "height": 26
+          },
+          {
+            "text": "A 2x 365JR EDC NATURELLE Rs67.00 Rs134.00",
+            "confidence": 0.9839114401398635,
+            "y": 1318,
+            "height": 26
+          },
+          {
+            "text": "A 2x APTA PAPIER CUISSON Rs69.95 Rs139.90",
+            "confidence": 0.9810365452999021,
+            "y": 1348,
+            "height": 26
+          },
+          {
+            "text": "B 1x GF BURGER X6 345GM Rs53.90 Rs63.90",
+            "confidence": 0.9621062498343619,
+            "y": 1379,
+            "height": 26.5
+          },
+          {
+            "text": "B 2x GF HOT D0G ROLLS 200G Rs34.95 Rs69.90",
+            "confidence": 0.9439013940947396,
+            "y": 1411,
+            "height": 26
+          },
+          {
+            "text": "A 1x CInDEREllA S.CRUnCHy Rs44.00 Rs44.00",
+            "confidence": 0.855578354219111,
+            "y": 1443,
+            "height": 23
+          },
+          {
+            "text": "A 1x E BRAND CHIA SEEDS Rs149.50 Rs149.50",
+            "confidence": 0.9723257117155122,
+            "y": 1472,
+            "height": 26
+          },
+          {
+            "text": "B APOLLO CURRY _85G Rs7.95 Rs63.60",
+            "confidence": 0.9104398675262928,
+            "y": 1502,
+            "height": 27
+          },
+          {
+            "text": "8x",
+            "confidence": 0.8977778355280558,
+            "y": 1507,
+            "height": 22
+          },
+          {
+            "text": "B 6x APoll0 CHICkeN 85G Rs7.95 Rs47.70",
+            "confidence": 0.8564559602075152,
+            "y": 1532,
+            "height": 28
+          },
+          {
+            "text": "1x KING BRAND LENTIlLE B Rs34.95",
+            "confidence": 0.895013819138209,
+            "y": 1563,
+            "height": 32
+          },
+          {
+            "text": "1x",
+            "confidence": 0.8549774487813314,
+            "y": 1571,
+            "height": 22
+          },
+          {
+            "text": "C BEST FOOD LENTILLE BL Rs38.50 Rs38.50",
+            "confidence": 0.8867267112474184,
+            "y": 1595,
+            "height": 27
+          },
+          {
+            "text": "C 1x BEST",
+            "confidence": 0.9785616993904114,
+            "y": 1600,
+            "height": 26
+          },
+          {
+            "text": "C 1× ORIENT DHOLL GRAMME 5 Rs35.00 Rs35.00",
+            "confidence": 0.9235833897477105,
+            "y": 1624,
+            "height": 37
+          },
+          {
+            "text": "C Ix FLAMBOYANT EMBERIQUE Rs46.00 Rs46.00",
+            "confidence": 0.9716307070197129,
+            "y": 1658,
+            "height": 29.5
+          },
+          {
+            "text": "B Ix AlPa HARIcot BlANc 50 Rs42.50 Rs42.50",
+            "confidence": 0.8524547403766995,
+            "y": 1689,
+            "height": 37
+          },
+          {
+            "text": "B 1× ALPA LENTILLE ROUGE 5 Rs26.75 Rs26.75",
+            "confidence": 0.9314213409310296,
+            "y": 1721,
+            "height": 40
+          },
+          {
+            "text": "C 2x SIBON DHOLL GRAMME 50 Rs34.00 Rs68.00",
+            "confidence": 0.8967278046267373,
+            "y": 1755,
+            "height": 41
+          },
+          {
+            "text": "c 1x BEST FOOD POP CORN 50 Rs38.50 Rs38.50",
+            "confidence": 0.9649349538291373,
+            "y": 1794,
+            "height": 29.5
+          },
+          {
+            "text": "C 1x BEST FOOD LENTILLE RO Rs28.25 Rs28.25",
+            "confidence": 0.8772387271974145,
+            "y": 1828,
+            "height": 35
+          },
+          {
+            "text": "B C/CHOICE LAMB SHLD FZ AUS",
+            "confidence": 0.993634446309163,
+            "y": 1865,
+            "height": 33
+          },
+          {
+            "text": "0.66 kg Rs559.90/kg Rs369.53",
+            "confidence": 0.9815876152780321,
+            "y": 1903,
+            "height": 30
+          },
+          {
+            "text": "C 2x BOKOMO N S MORNING Rs164.00 Rs328.00",
+            "confidence": 0.8988533783249739,
+            "y": 1938,
+            "height": 31
+          },
+          {
+            "text": "A 1x PANZANI TORTI 5O0G Rs99,95 Rs99.95",
+            "confidence": 0.9385101026610324,
+            "y": 1972,
+            "height": 29.5
+          },
+          {
+            "text": "B 4x F/STEAD MINI CHK FRA Rs96.00 Rs384.00",
+            "confidence": 0.953374662569591,
+            "y": 2013,
+            "height": 28
+          },
+          {
+            "text": "C 1x BEST FOOD GRAMME SEC Rs39,50 Rs39.50",
+            "confidence": 0.9587396964794253,
+            "y": 2046,
+            "height": 32
+          },
+          {
+            "text": "B 1x MELBOURNE CHEDDAR CHE Rs75.95 Rs75.95",
+            "confidence": 0.9745314291545323,
+            "y": 2083,
+            "height": 32
+          },
+          {
+            "text": "A Ix FREEDENT MENTHE VER Rs138.00 Rs138.00",
+            "confidence": 0.9626153452055795,
+            "y": 2119,
+            "height": 36
+          },
+          {
+            "text": "A 1x PANZANI FARFALLE SE Rs135.00 Rs135.00",
+            "confidence": 0.9637258421807062,
+            "y": 2158,
+            "height": 37
+          },
+          {
+            "text": "B 1x SAMYANG TANGLE GARLIC Rs95.00 Rs95.00",
+            "confidence": 0.9421758736882891,
+            "y": 2191,
+            "height": 50
+          },
+          {
+            "text": "1x SAMYANG TANGLE CRMY M R95.00 R95.00",
+            "confidence": 0.7869770644526732,
+            "y": 2226,
+            "height": 59
+          },
+          {
+            "text": "A 1× MAGGI SOUP POULE VRMC Rs44.00 Rs44.00",
+            "confidence": 0.9706430463563829,
+            "y": 2279.771434321694,
+            "height": 32
+          },
+          {
+            "text": "A 1x JULIE SUGAR CRACKER Rs119.95 Rs119.95",
+            "confidence": 0.9638455779779525,
+            "y": 2318.771434321694,
+            "height": 37
+          },
+          {
+            "text": "A 1x C LEGER SAUCE BECHAME R654.95 Rs54.95",
+            "confidence": 0.9257905674832207,
+            "y": 2354.771434321694,
+            "height": 50
+          },
+          {
+            "text": "A 1x C LEGER SAUCE HOLLAND R654.95 Rs54.95",
+            "confidence": 0.8347218320483253,
+            "y": 2396.771434321694,
+            "height": 53
+          },
+          {
+            "text": "B 2x GLENRYCK PILCHARD TO RsB4.80 Rs169.60",
+            "confidence": 0.8877207601354236,
+            "y": 2436.771434321694,
+            "height": 53
+          },
+          {
+            "text": "A IN BIO LAB DOHE ABRICO RS179.95 RS179.96",
+            "confidence": 0.8863704424528849,
+            "y": 2471.771434321694,
+            "height": 49
+          },
+          {
+            "text": "0. IX HAPPY CHAMPIGNONS WHO R",
+            "confidence": 0.7739283591508865,
+            "y": 2509.771434321694,
+            "height": 28
+          }
+        ],
+        "report": {
+          "photoWidth": 720,
+          "photoHeight": 1280,
+          "lineHeight": 18,
+          "tilt": 0.2,
+          "zoom": 2,
+          "parts": 3,
+          "closerLooks": 8,
+          "improved": 5,
+          "unclearLeft": 3,
+          "leftOut": false
+        }
+      },
+      {
+        "name": "WhatsApp Image 2026-10-15 at 17.47.56(1).jpeg",
+        "lines": [
+          {
+            "text": "1000 EAMME",
+            "confidence": 0.7676187058289846,
+            "y": 0.5,
+            "height": 12
+          },
+          {
+            "text": "1X BEST FOOD PoR CORN so",
+            "confidence": 0.8200451903045177,
+            "y": 6.5,
+            "height": 14
+          },
+          {
+            "text": "LENTILLE RO R628 25 H026.25",
+            "confidence": 0.7903513266988422,
+            "y": 16.5,
+            "height": 13
+          },
+          {
+            "text": "8 C/CHOICE LAMB SHLD RZ AUS",
+            "confidence": 0.8216606307029725,
+            "y": 22.5,
+            "height": 17
+          },
+          {
+            "text": "0.66 kg Rs559.90/kg Ra369.53",
+            "confidence": 0.947551904962613,
+            "y": 38.5,
+            "height": 18
+          },
+          {
+            "text": "2× BOKOMO N S MORNING Rs164.00 Rs328.00",
+            "confidence": 0.9100717571941582,
+            "y": 50.5,
+            "height": 23
+          },
+          {
+            "text": "1x PANZANI TORTI 500G R899.95 R899.95",
+            "confidence": 0.9160130824361529,
+            "y": 67.5,
+            "height": 18
+          },
+          {
+            "text": "48 F/STEAD MINI CHK FRA RS96.00 R8384.00",
+            "confidence": 0.9168099409494644,
+            "y": 82.5,
+            "height": 20
+          },
+          {
+            "text": "BEST FOOD GRAMME SEC Rs39.50 R839.50",
+            "confidence": 0.9687307664326259,
+            "y": 98.5,
+            "height": 20.5
+          },
+          {
+            "text": "18.",
+            "confidence": 0.8627679149309794,
+            "y": 105.5,
+            "height": 14
+          },
+          {
+            "text": "MELBOURNE CHEDDAR 0HE RS75.95 RS75.95",
+            "confidence": 0.9531080167035799,
+            "y": 115.5,
+            "height": 19
+          },
+          {
+            "text": "IN FREEDENT MENTHE VER RS138.00 RS138.00",
+            "confidence": 0.8994791746139527,
+            "y": 130.5,
+            "height": 23
+          },
+          {
+            "text": "A",
+            "confidence": 0.9660529494285583,
+            "y": 134.5,
+            "height": 18
+          },
+          {
+            "text": "A 1x PANZANI FARFALLE SE RS135.00 RS135.00",
+            "confidence": 0.926404744386673,
+            "y": 148.5,
+            "height": 27
+          },
+          {
+            "text": "B 1x SAMYANG TANGLE GARLIC Rs95.00 RS95.00",
+            "confidence": 0.8869706803844088,
+            "y": 168.5,
+            "height": 31
+          },
+          {
+            "text": "B 1x SAMYANg TANGLE CRMY M Rs95.00 Rs95.00",
+            "confidence": 0.886626050239656,
+            "y": 190.5,
+            "height": 24
+          },
+          {
+            "text": "A Tx MAGGI SOUP POULE VRMC R844.00 Rs44.00",
+            "confidence": 0.9275182340203262,
+            "y": 213.5,
+            "height": 20.5
+          },
+          {
+            "text": "A 1x JULIE SUGAR CRACKER R&119.95 Rs119.95",
+            "confidence": 0.8868717955691474,
+            "y": 234.5,
+            "height": 26
+          },
+          {
+            "text": "1x LEGER SAUCE BECHAME R854.95 R854.95",
+            "confidence": 0.9674813119140832,
+            "y": 256.5,
+            "height": 20.5
+          },
+          {
+            "text": "A 1x C LEG",
+            "confidence": 0.8419909358024598,
+            "y": 260.5,
+            "height": 19
+          },
+          {
+            "text": "A Ix C LEGER SAUCE HOLLAND R654.95 R654.95",
+            "confidence": 0.9340234154309982,
+            "y": 277.5,
+            "height": 17.5
+          },
+          {
+            "text": "D CUARD.T0 RAB4 00 PA169:60",
+            "confidence": 0.699402085863627,
+            "y": 299.5,
+            "height": 12
+          },
+          {
+            "text": "GI ENOY T",
+            "confidence": 0.7592363825866154,
+            "y": 299.5,
+            "height": 14
+          },
+          {
+            "text": "LAM ABRE",
+            "confidence": 0.770983657666615,
+            "y": 313.5,
+            "height": 13.5
+          },
+          {
+            "text": "IN EA MOTGNONE NHO RIZA3S",
+            "confidence": 0.5759038666020269,
+            "y": 322.5,
+            "height": 14
+          },
+          {
+            "text": "IX PAE NET WIPES X100.R0 R599.95 R699.90",
+            "confidence": 0.8085719897515244,
+            "y": 338.5,
+            "height": 14
+          },
+          {
+            "text": "6x TROPIUAL TUINA FLAKES R617.95 RS107.70",
+            "confidence": 0.8632423752232602,
+            "y": 351.5,
+            "height": 14
+          },
+          {
+            "text": "EB BAKTNG SODA FLACON RS44 OO RSA4.00",
+            "confidence": 0.8360520424069585,
+            "y": 366.5,
+            "height": 13
+          },
+          {
+            "text": "18 CLASS1C GOLD BA Rs1.722.90 R81,722.90",
+            "confidence": 0.9180077895140036,
+            "y": 379.5,
+            "height": 15.5
+          },
+          {
+            "text": "48 BEAURIVAGE SARDINE IN R824.10 RS96.40",
+            "confidence": 0.8820858765871097,
+            "y": 396.5,
+            "height": 17.5
+          },
+          {
+            "text": "28 M RECIPE GINGER PAST Rs93.90 Rs186.00",
+            "confidence": 0.9344473060889121,
+            "y": 414.5,
+            "height": 17.5
+          },
+          {
+            "text": "2x REGAL PEAS & CARROTS R831.00 Rs62.00",
+            "confidence": 0.9478731798498254,
+            "y": 433.5,
+            "height": 17
+          },
+          {
+            "text": "Ix TELLY VEG MAY0 470M Rs180.00 Rs180.00",
+            "confidence": 0.9440592676401138,
+            "y": 452.5,
+            "height": 18
+          },
+          {
+            "text": "A 1x EB ESSENCE CUL INAIRE RS52.00 RS52.00",
+            "confidence": 0.9176193141355747,
+            "y": 472.5,
+            "height": 17.5
+          },
+          {
+            "text": "A 1x YE0S DARK S0Y SAUCE 1 Rs72.00 Rs72.00",
+            "confidence": 0.9353580261979785,
+            "y": 492.5,
+            "height": 19
+          },
+          {
+            "text": "A 1x W HUP FRIED N00DLE SC Rs76.95 Rs76.95",
+            "confidence": 0.9323561290899912,
+            "y": 514.5,
+            "height": 19
+          },
+          {
+            "text": "B 3x SUNBR1DGE SLICED MUSH Rs19.95 Rs39.90",
+            "confidence": 0.9443092154605048,
+            "y": 536.5,
+            "height": 19
+          },
+          {
+            "text": "A 1x YUMMY CUSTARD POWDER Rs94.65 Rs94.65",
+            "confidence": 0.9719810573066153,
+            "y": 557.5,
+            "height": 19
+          },
+          {
+            "text": "A Ix SUMO DISH WASH PST LE Rs67 95 Rs67.95",
+            "confidence": 0.9630362348897117,
+            "y": 579.5,
+            "height": 19
+          },
+          {
+            "text": "A",
+            "confidence": 0.992587149143219,
+            "y": 603.5,
+            "height": 17
+          },
+          {
+            "text": "1x CHAB VERMICELLE MUL Rs109.95 Rs109.95",
+            "confidence": 0.9518412560224533,
+            "y": 603.5,
+            "height": 19
+          },
+          {
+            "text": "A",
+            "confidence": 0.9696940183639526,
+            "y": 624.5,
+            "height": 19
+          },
+          {
+            "text": "1× MAGGI CHICKEn CUBE 60 Rs45.00 Rs45.00",
+            "confidence": 0.8897621423006058,
+            "y": 625.5,
+            "height": 19
+          },
+          {
+            "text": "B Ix SENS0DYNE TP C0MP P Rs280.00 Rs280.00",
+            "confidence": 0.957103168964386,
+            "y": 644.5,
+            "height": 18
+          },
+          {
+            "text": "1x MOIRS ESSENCE LEMON 3 Rs34.50 Rs34.50",
+            "confidence": 0.971943573653698,
+            "y": 668.5,
+            "height": 19
+          },
+          {
+            "text": "A 1x DESIAM RED CHILI SR Rs105.00 Rs105.00",
+            "confidence": 0.9817837026061081,
+            "y": 689.5,
+            "height": 20.5
+          },
+          {
+            "text": "A 1x COCON PUDDNG STRAWBER Rs96.00 Rs96.00",
+            "confidence": 0.9823333516716957,
+            "y": 711.5,
+            "height": 19
+          },
+          {
+            "text": "A 1x LIFE HOSIN SAUCE 250G Rs73.50 Rs73.50",
+            "confidence": 0.9870944122473398,
+            "y": 733.5,
+            "height": 19
+          },
+          {
+            "text": "1x SUNGOLD TOMATO SAUCE Rs78.00 Rs78.00",
+            "confidence": 0.9600553619555938,
+            "y": 756.5,
+            "height": 18
+          },
+          {
+            "text": "A1",
+            "confidence": 0.8887817561626434,
+            "y": 757,
+            "height": 19
+          },
+          {
+            "text": "A 6x KO STORAGE JAR PP TW Rs79.95 Rs479.70",
+            "confidence": 0.9683087177392913,
+            "y": 777.5,
+            "height": 18
+          },
+          {
+            "text": "A 1x HAPPY SPICY PEANUT 15 Rs49.95 Rs49.95",
+            "confidence": 0.9791098905772697,
+            "y": 799.5,
+            "height": 18.5
+          },
+          {
+            "text": "B 1x COLGATE TP JR MENTH Rs110.00 Rs110.00",
+            "confidence": 0.9654560089111328,
+            "y": 819.5,
+            "height": 20
+          },
+          {
+            "text": "B 1x LENOR JASMIN ROSE 1 Rs194.95 Rs194.95",
+            "confidence": 0.9698426519952169,
+            "y": 839.5,
+            "height": 22
+          },
+          {
+            "text": "B 1x ST EL0I MAIS DOU SANS Rs47.95 Rs47.95",
+            "confidence": 0.9480189564751416,
+            "y": 862.5,
+            "height": 20.5
+          },
+          {
+            "text": "A 1x LU PRINCE TOUT CHOC Rs130.00 Rs130.00",
+            "confidence": 0.9671249866485596,
+            "y": 886.5,
+            "height": 18
+          },
+          {
+            "text": "a 2x JEWEL BL0C WC R EAU Rs110.00 Rs220.00",
+            "confidence": 0.9648441119891841,
+            "y": 908.5,
+            "height": 18
+          },
+          {
+            "text": "A 1x LU PRINCE VANILLE 3 Rs130.00 Rs130.00",
+            "confidence": 0.9902939304709435,
+            "y": 928.5,
+            "height": 18
+          },
+          {
+            "text": "A 1x TOP BGT DESO MARINE 3 Rs94.95 Rs94.95",
+            "confidence": 0.9399692095816136,
+            "y": 952.5,
+            "height": 18
+          },
+          {
+            "text": "A",
+            "confidence": 0.9612270593643188,
+            "y": 973.5,
+            "height": 18
+          },
+          {
+            "text": "1x KO SIAKI UTILITY KN Rs149.95 Rs149.95",
+            "confidence": 0.9527643531560898,
+            "y": 974.5,
+            "height": 18
+          },
+          {
+            "text": "A 1x AQ CABLE TIES (WHIT Rs115.00 Rs115.00",
+            "confidence": 0.9638595169498807,
+            "y": 994.5,
+            "height": 18
+          },
+          {
+            "text": "A 1x EH SCISSORS SS SET Rs109 95 Ro109.95",
+            "confidence": 0.9053866180934405,
+            "y": 1014.5,
+            "height": 18.5
+          },
+          {
+            "text": "A ESKO N - 4 RsJU4.00 Rs304.00",
+            "confidence": 0.8686078168727733,
+            "y": 1033.5,
+            "height": 18
+          },
+          {
+            "text": "A 1× JULIES WHEAT CRACKE Rs123.00 Rs123.00",
+            "confidence": 0.9257254196064812,
+            "y": 1055.5,
+            "height": 23
+          },
+          {
+            "text": "A 1X KO UTILITY KNIFE SS Rs149.95 Rs149.95",
+            "confidence": 0.9480679687999544,
+            "y": 1077.5,
+            "height": 20.5
+          },
+          {
+            "text": "1x CBON VSL POMME 5L",
+            "confidence": 0.9274893671274185,
+            "y": 1099.5,
+            "height": 18
+          },
+          {
+            "text": "A1 Rs249.95 Rs249.95",
+            "confidence": 0.974463795360766,
+            "y": 1099.5,
+            "height": 18.5
+          },
+          {
+            "text": "84 LINES 134 PRODUCTS",
+            "confidence": 0.9923899650573731,
+            "y": 1144.9064233328445,
+            "height": 20.5
+          },
+          {
+            "text": "V.A.T. Rate Am.NeT Am.VAT Am.T",
+            "confidence": 0.9233907529940972,
+            "y": 1188.9064233328445,
+            "height": 23
+          },
+          {
+            "text": "TL",
+            "confidence": 0.9746720492839813,
+            "y": 1216.9064233328445,
+            "height": 26
+          },
+          {
+            "text": "B 0XRs6,591.29 Rs0.00 Rs6,591.29",
+            "confidence": 0.9587691981216957,
+            "y": 1236.9064233328445,
+            "height": 22
+          },
+          {
+            "text": "0% Rs842.70 Rs0.00 Rs842.70",
+            "confidence": 0.9937781977653504,
+            "y": 1260.9064233328445,
+            "height": 22
+          },
+          {
+            "text": "A 15%Rs5,20.19 Rs784.56 Rs6,014.75",
+            "confidence": 0.9005569594521676,
+            "y": 1284.9064233328445,
+            "height": 22
+          },
+          {
+            "text": "NET TOTAL Rs12,664.18",
+            "confidence": 0.9967781871557235,
+            "y": 1335.9064233328445,
+            "height": 22
+          },
+          {
+            "text": "NET ALL TAX, INCL. Rs13,448.74",
+            "confidence": 0.9522852733217436,
+            "y": 1362.9064233328445,
+            "height": 19
+          },
+          {
+            "text": "MY.T Rs13,448.74",
+            "confidence": 0.9654560565948487,
+            "y": 1409.9064233328445,
+            "height": 24
+          },
+          {
+            "text": "Print receipt: 1x",
+            "confidence": 0.9786936290123883,
+            "y": 1460.9064233328445,
+            "height": 23
+          },
+          {
+            "text": "MERCI DE VOTRE VISITE ET A BIENTOT!",
+            "confidence": 0.9877715127808707,
+            "y": 1508.9064233328445,
+            "height": 32
+          },
+          {
+            "text": "PRESENTER TICKET ORIGINAL POUR TOUTES",
+            "confidence": 0.9833140663198523,
+            "y": 1558.9064233328445,
+            "height": 36
+          },
+          {
+            "text": "RECLAMATIONS DANS UN DELAI DE 5 JOURS",
+            "confidence": 0.9487649750065159,
+            "y": 1583.9064233328445,
+            "height": 40
+          },
+          {
+            "text": "Vofr conditions à 1'accue1l",
+            "confidence": 0.7762088968797967,
+            "y": 1613.9064233328445,
+            "height": 36
+          },
+          {
+            "text": "Fiscalisé",
+            "confidence": 0.9843160841200087,
+            "y": 1671.9064233328445,
+            "height": 32
+          },
+          {
+            "text": "OHen",
+            "confidence": 0.5518658608198166,
+            "y": 1746.9064233328445,
+            "height": 58
+          }
+        ],
+        "report": {
+          "photoWidth": 720,
+          "photoHeight": 1280,
+          "lineHeight": 26,
+          "tilt": 5.4,
+          "zoom": 1.4,
+          "parts": 2,
+          "closerLooks": 12,
+          "improved": 3,
+          "unclearLeft": 13,
+          "leftOut": false
+        }
+      }
+    ]
+  },
+  "expected": {
+    "checked": true,
+    "kind": "supermarket",
+    "store": "Intermart",
+    "date": "2026-09-27",
+    "total": 1344874,
+    "payment": "mobile",
+    "itemized": true
+  }
+}

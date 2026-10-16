@@ -7,10 +7,13 @@ export interface KnownShop {
   name: string;
   /** How it prints on receipts, upper case. Spaces may be missing on the receipt ("DREAM PRICE" / "DREAMPRICE"). */
   spellings: readonly string[];
+  /** Other lines only this chain prints (upper case, no accents): they name it when the logo can't be read. */
+  taglines?: readonly string[];
 }
 
 export const KNOWN_SHOPS: readonly KnownShop[] = [
-  { name: 'Intermart', spellings: ['INTERMART'] },
+  // Its logo is white on black and often unreadable; every receipt says "Partenaire Intermarché" under it.
+  { name: 'Intermart', spellings: ['INTERMART'], taglines: ['PARTENAIRE INTERMARCHE'] },
   { name: 'Winners', spellings: ['WINNERS'] },
   { name: 'Carrefour', spellings: ['CARREFOUR'] },
   { name: 'Super U', spellings: ['SUPER U'] },
