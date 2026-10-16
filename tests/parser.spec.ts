@@ -3,6 +3,7 @@ import { findDateInText } from '../src/parser/dates';
 import { learnHints } from '../src/parser/hints';
 import { extractAmounts, parseMoneyInput } from '../src/parser/money';
 import { parseReceipt } from '../src/parser/parse';
+import { parseForShop } from '../src/parser/read-for-shop';
 import { matchStore, storeKey } from '../src/parser/store-match';
 import { fixCurrency, fixDigits, normalizeText } from '../src/parser/text';
 import type { OcrLine } from '../src/parser/types';
@@ -448,6 +449,23 @@ describe('learned store hints', () => {
     expect(r.total).toBe(45000);
     expect(r.totalConfidence).toBe('high');
     expect(r.warnings).toEqual([]);
+  });
+
+  it("reads a known shop's receipt with what was learned about it", () => {
+    // No usual total label, and a bigger amount below it: the general rules pick the wrong one.
+    const lines = ocr(`
+      # QUINCAILLERIE ABC
+      03/10/2026
+      VIS 6MM X100     150.00
+      COLLE BOIS       300.00
+      A REGLER         450.00
+      CUMUL ANNUEL    5200.00
+    `);
+    expect(parseForShop(lines, [], { today: TODAY }).total).toBe(520000);
+    const shop = { name: 'Quincaillerie ABC', aliases: [], taxId: null, hints: learnHints(HARDWARE, { total: 45000, date: '2026-10-03' }) };
+    expect(parseForShop(lines, [shop], { today: TODAY }).total).toBe(45000);
+    // Another shop's hints don't apply.
+    expect(parseForShop(lines, [{ ...shop, name: 'Winners' }], { today: TODAY }).total).toBe(520000);
   });
 
   it('learns month-first dates only when the confirmed date proves it', () => {

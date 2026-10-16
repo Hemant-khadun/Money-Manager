@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { db } from '../db/schema';
 import { describeError } from '../lib/describe-error';
 import { debugLog } from '../lib/debug-log';
 import type { OcrLine, ParsedReceipt } from '../parser/types';
@@ -23,7 +24,7 @@ const ocr = {
 };
 
 /** Parsing and joining load with the first photo, not with the app. */
-const tools = () => Promise.all([import('../parser/parse'), import('../pipeline/stitch')]).then(([parse, stitch]) => ({ ...parse, ...stitch }));
+const tools = () => Promise.all([import('../parser/read-for-shop'), import('../pipeline/stitch')]).then(([read, stitch]) => ({ ...read, ...stitch }));
 
 export interface Photo {
   id: number;
@@ -208,10 +209,11 @@ export function useReceiptReader(options: ReaderOptions = {}) {
           );
           cache.current.set(photo.id, { strategy: job.strategy, lines: run.lines, report: run.report, ms: run.ms });
         }
-        const { parseReceipt, stitchPhotos } = await tools();
+        const { parseForShop, stitchPhotos } = await tools();
         const readings = job.photos.map((p) => cache.current.get(p.id)!);
         const joined = stitchPhotos(readings.map((r) => r.lines));
-        const parsed = parseReceipt(joined.lines);
+        // Read with what saving this shop's receipts taught, when it is one seen before.
+        const parsed = parseForShop(joined.lines, await db.stores.toArray());
         const found = (what: string, value: unknown) => `${what} ${value == null ? 'not found' : 'found'}`;
         debugLog(
           'app',
