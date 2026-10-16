@@ -187,7 +187,7 @@ Because the summaries use formulas, they stay correct if you edit rows by hand i
 - **vite-plugin-pwa** (install + offline + model caching)
 - **ppu-paddle-ocr** (PP-OCRv5, onnxruntime-web, WebGPU/WASM). Its "99% on receipts" figure is the author's own claim, so verify it in Phase 0. **Tesseract.js** as fallback.
 - **cropperjs** for manual crop (auto edge detection with OpenCV.js later; it's about 8 MB)
-- **Charts: small hand-built SVG components** (bars, meters, sparkline, price line) using `d3-scale`/`d3-shape` for the maths. No heavy chart library: full control over the Apple-style look and a far smaller bundle than ECharts.
+- **Charts: small hand-built SVG components** (bars, meters, sparkline, price line), their maths written by hand (no d3). No chart library: full control over the Apple-style look and a far smaller bundle than ECharts.
 - Animations in plain CSS (see §7b; the `motion` package is installed but unused, to keep startup small) · **vaul** for iOS-style bottom sheets · **@tanstack/react-virtual** for long lists
 - **ExcelJS** for export · **Vitest + React Testing Library** for tests
 - **zod** (shared `ReceiptSchema`) · **@anthropic-ai/sdk** (cloud fallback only, lazy-loaded)
