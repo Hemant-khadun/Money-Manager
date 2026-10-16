@@ -18,7 +18,11 @@ import { ReviewSheet } from './ReviewSheet';
 function status(scan: ReadScan, ready: boolean): string {
   const photos = scan.photos.length > 1 ? `${scan.photos.length} photos · ` : '';
   if (scan.status === 'queued') return `${photos}Waiting its turn`;
-  if (scan.status === 'reading') return `${scan.step ?? (ready ? 'Getting started' : 'Getting ready, the first time takes a moment')}…`;
+  if (scan.status === 'reading') {
+    const step = scan.step ?? (ready ? 'Getting started' : 'Getting ready, the first time takes a moment');
+    // A step of a receipt with several photos says which photo it is on ("Photo 2 of 3: …").
+    return `${step.startsWith('Photo ') ? '' : photos}${step}…`;
+  }
   if (scan.status === 'error') return scan.problem ?? "Couldn't read this photo";
   if (!scan.lines?.length) return `${photos}Couldn't find any writing. Try a closer photo in good light`;
   // A cut-off receipt's "total" is only a guess (an item's price): not shown as if it were the total.
@@ -46,8 +50,8 @@ function ReadingBar({ percent }: { percent?: number }) {
   );
 }
 
-/** The receipt's photo. While it is being read, a light sweeps down it. */
-function Thumb({ url, reading }: { url?: string; reading: boolean }) {
+/** The receipt's photo, with how many photos it has when more than one. While it is being read, a light sweeps down it. */
+function Thumb({ url, reading, count }: { url?: string; reading: boolean; count: number }) {
   return (
     <div className="relative size-12 shrink-0 overflow-hidden rounded-xl border border-border">
       <img src={url} alt="" className="size-full object-cover" />
@@ -55,6 +59,11 @@ function Thumb({ url, reading }: { url?: string; reading: boolean }) {
         <div aria-hidden className="absolute inset-x-0 top-0 animate-sweep [--sweep:44px]">
           <div className="h-0.5 bg-primary shadow-[0_0_8px_2px_var(--primary)]" />
         </div>
+      )}
+      {count > 1 && (
+        <span className="absolute bottom-0.5 right-0.5 grid h-4.5 min-w-4.5 place-items-center rounded-full bg-primary px-1 text-caption font-semibold leading-none text-primary-foreground">
+          {count}
+        </span>
       )}
     </div>
   );
@@ -145,7 +154,7 @@ function ScanRow({
   return (
     <Row
       onClick={scan.status === 'done' ? onOpen : undefined}
-      icon={<Thumb url={photosInOrder(scan)[0]?.url} reading={reading} />}
+      icon={<Thumb url={photosInOrder(scan)[0]?.url} reading={reading} count={scan.photos.length} />}
       title={scan.parsed?.storeName ?? (scan.status === 'done' || scan.status === 'error' ? 'Receipt' : 'Reading…')}
       subtitle={
         reading ? (
@@ -233,6 +242,15 @@ export function Scan() {
     list.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, [scans.length]);
 
+  /** More photos of a receipt: say so, as reading the new one may only start after the current one. */
+  const addPhotosTo = (scan: ReadScan, files: FileList | null) => {
+    const added = files?.length ?? 0;
+    if (!added) return reader.addPhotosTo(scan.id, files);
+    const count = scan.photos.length + added;
+    reader.addPhotosTo(scan.id, files);
+    toast(added === 1 ? `Photo ${count} added to this receipt` : `${added} photos added: ${count} in this receipt`);
+  };
+
   const addPhotos = (files: FileList | null) => {
     justChosen.current = reader.add(files).length > 0;
   };
@@ -260,7 +278,7 @@ export function Scan() {
                   onOpen={() => setOpenId(scan.id)}
                   onRetry={() => reader.reread(scan.id)}
                   onRemove={() => reader.remove(scan.id)}
-                  onMorePhotos={(files) => reader.addPhotosTo(scan.id, files)}
+                  onMorePhotos={(files) => addPhotosTo(scan, files)}
                   onJoinBelow={joinable ? () => reader.joinInto(scan.id, below.id) : undefined}
                 />
               );
@@ -328,7 +346,7 @@ export function Scan() {
         }}
         onAddPhotos={(scan, files) => {
           setOpenId(null);
-          reader.addPhotosTo(scan.id, files);
+          addPhotosTo(scan, files);
         }}
         onSplit={(scan) => {
           setOpenId(null);
