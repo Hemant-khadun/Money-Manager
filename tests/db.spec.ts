@@ -2,12 +2,17 @@ import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { exportBackup, restoreBackup } from '../src/db/backup';
 import {
+  deleteItem,
   deleteReceipt,
+  deleteReceipts,
   ensureSeeded,
   findStore,
+  restoreItems,
   restoreReceipt,
+  restoreReceipts,
   saveReceipt,
   setItemCategory,
+  updateItem,
   updateReceipt,
   type DraftItem,
   type ReceiptDraft,
@@ -74,6 +79,11 @@ describe('saving a receipt', () => {
     expect(await db.products.get('PERETTE VANILLE 250')).toMatchObject({ categoryId: 'groceries.dairy' });
   });
 
+  it('does not save which items the reader was unsure of (that is only for checking)', async () => {
+    const id = await saveReceipt(draft({ items: [{ ...item('COLGATE TP JR MENTH', 11000, 'personal'), unclear: true }, item('PERETTE VANILLE 250', 19000, 'groceries')] }));
+    expect((await db.items.where('receiptId').equals(id).toArray()).some((i) => 'unclear' in i)).toBe(false);
+  });
+
   it('keeps no items for a receipt whose items did not add up', async () => {
     const id = await saveReceipt(draft({ items: [] }));
     expect((await db.receipts.get(id))!).toMatchObject({ itemized: false, split: [{ categoryId: 'groceries', amount: 30000 }] });
@@ -122,6 +132,68 @@ describe('changing a receipt', () => {
   });
 });
 
+describe('changing an item', () => {
+  const itemsOf = (id: number) => db.items.where('receiptId').equals(id).sortBy('name');
+
+  it('corrects a price: the price for one follows, and the split with it', async () => {
+    const id = await saveReceipt(draft());
+    const colgate = (await itemsOf(id))[0];
+    await updateItem(colgate.id!, { qty: 2, lineTotal: 22000 });
+    expect(await db.items.get(colgate.id!)).toMatchObject({ qty: 2, unitPrice: 11000, lineTotal: 22000 });
+    // The total stays as it was, shared out by what each category's items now cost.
+    expect((await db.receipts.get(id))!.split).toEqual([
+      { categoryId: 'personal', amount: 16098 },
+      { categoryId: 'groceries', amount: 13902 },
+    ]);
+  });
+
+  it('a corrected name is the product from then on, with the category known for it', async () => {
+    await db.products.put({ key: 'PERRETTE VANILLE 250', name: 'PERRETTE VANILLE 250', categoryId: 'groceries.dairy' });
+    const id = await saveReceipt(draft());
+    const perette = (await itemsOf(id))[1];
+    await updateItem(perette.id!, { name: ' PERRETTE VANILLE 250 ' });
+    expect(await db.items.get(perette.id!)).toMatchObject({
+      name: 'PERRETTE VANILLE 250',
+      productKey: 'PERRETTE VANILLE 250',
+      categoryId: 'groceries.dairy',
+      categorySource: 'learned',
+    });
+  });
+
+  it('a category the person chose goes with the corrected name', async () => {
+    const id = await saveReceipt(draft());
+    const colgate = (await itemsOf(id))[0];
+    await setItemCategory(colgate.id!, 'pharmacy');
+    await updateItem(colgate.id!, { name: 'COLGATE TP JR MINT' });
+    expect(await db.products.get('COLGATE TP JR MINT')).toMatchObject({ categoryId: 'pharmacy' });
+    expect(await db.items.get(colgate.id!)).toMatchObject({ categoryId: 'pharmacy', categorySource: 'you' });
+  });
+
+  it('deleting the last item keeps the total only, and can be undone', async () => {
+    const id = await saveReceipt(draft({ items: [item('COLGATE TP JR MENTH', 30500, 'personal'), { ...item('Discounts', -500, 'groceries'), kind: 'discount' }] }));
+    const colgate = (await itemsOf(id))[0];
+    const deleted = (await deleteItem(colgate.id!))!;
+    expect(await db.items.where('receiptId').equals(id).count()).toBe(0); // the discount line went too
+    expect(await db.receipts.get(id)).toMatchObject({ itemized: false, split: [{ categoryId: 'groceries', amount: 30000 }] });
+    await restoreItems(deleted);
+    expect(await db.items.where('receiptId').equals(id).count()).toBe(2);
+    expect(await db.receipts.get(id)).toMatchObject({ itemized: true, split: [{ categoryId: 'personal', amount: 30000 }] });
+  });
+});
+
+describe('deleting several receipts', () => {
+  it('deletes them all, and brings them all back on undo', async () => {
+    const ids = [await saveReceipt(draft()), await saveReceipt(draft({ date: '2026-10-09' })), await saveReceipt(draft({ date: '2026-10-10' }))];
+    const deleted = await deleteReceipts([ids[0], ids[2], 999]);
+    expect(deleted).toHaveLength(2);
+    expect((await db.receipts.toArray()).map((r) => r.id)).toEqual([ids[1]]);
+    expect(await db.items.count()).toBe(2);
+    await restoreReceipts(deleted);
+    expect(await db.receipts.count()).toBe(3);
+    expect(await db.items.count()).toBe(6);
+  });
+});
+
 describe('backup', () => {
   it('restores exactly what was backed up', async () => {
     await saveReceipt(draft(), { thumb: new Blob(['jpeg-bytes'], { type: 'image/jpeg' }) });
@@ -135,6 +207,6 @@ describe('backup', () => {
   });
 
   it('refuses a file that is not a backup, in plain words', async () => {
-    await expect(restoreBackup({ hello: 1 })).rejects.toThrow("This file isn't a Spent backup.");
+    await expect(restoreBackup({ hello: 1 })).rejects.toThrow("This file isn't a Money Manager backup.");
   });
 });

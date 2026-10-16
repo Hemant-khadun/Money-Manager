@@ -69,7 +69,7 @@ export function Overview() {
 
   if (count === 0) {
     return (
-      <Page title="Spent" actions={switcher} glow>
+      <Page title="Money Manager" actions={switcher} glow>
         <EmptyState title="Nothing here yet" icon={ScanLine}>
           <p>Scan a receipt, or add something you paid for, and you'll see where your money goes, month by month.</p>
           <div className="mt-6 flex flex-col gap-2">

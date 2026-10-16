@@ -1,4 +1,5 @@
 import { getRouteApi, useNavigate } from '@tanstack/react-router';
+import { Pencil, TriangleAlert } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { CategoryIcon } from '../components/CategoryIcon';
 import { CategoryPicker, categoryIcon, categoryName } from '../components/CategoryPicker';
@@ -8,13 +9,15 @@ import { Page } from '../components/Page';
 import { useToast } from '../components/Toast';
 import { Button, EmptyState, FieldRow, Group, Row, Segmented, inputClass } from '../components/primitives';
 import { groupByCategory } from '../categorize/group';
-import { deleteReceipt, restoreReceipt, setItemCategory, updateReceipt } from '../db/receipts';
+import { deleteItem, deleteReceipt, itemsAddUp, restoreItems, restoreReceipt, setItemCategory, updateItem, updateReceipt } from '../db/receipts';
 import type { Category, LineItem, Receipt } from '../db/schema';
 import { useCategories, useReceipt, useReceiptItems, useThumbUrl } from '../hooks/data';
 import { centsToInput, formatDate, formatMoney, formatPercent } from '../lib/format';
 import { parseMoneyInput } from '../parser/money';
 import type { PaymentMethod } from '../parser/types';
 import { PAYMENT_OPTIONS } from './AddExpenseSheet';
+import type { ItemFields } from '../scan/draft';
+import { ItemSheet } from './ItemSheet';
 
 // One saved receipt, in full: everything it holds, its items grouped by category, and everything
 // can be changed. Changes save as you make them.
@@ -32,8 +35,8 @@ function addedOn(ms: number): string {
   return `${formatDate(local)} at ${timeOfDay.format(d)}`;
 }
 
-/** One line of the receipt: name, how many at what price, its category (changeable) and what it cost. */
-function ItemRow({ item, categories }: { item: LineItem; categories: Category[] }) {
+/** One line of the receipt: name, how many at what price, its category (changeable) and what it cost; the pencil changes the rest. */
+function ItemRow({ item, categories, onEdit }: { item: LineItem; categories: Category[]; onEdit: (item: LineItem) => void }) {
   return (
     <div className="group/row pl-4">
       <div className="flex min-h-12 items-center gap-3 border-b border-dashed border-border py-2 pr-4 group-last/row:border-b-0">
@@ -49,22 +52,57 @@ function ItemRow({ item, categories }: { item: LineItem; categories: Category[] 
           )}
         </div>
         <p className="shrink-0 text-subhead tabular-nums">{formatMoney(item.lineTotal)}</p>
+        <button
+          type="button"
+          aria-label={`Change ${item.name}`}
+          onClick={() => onEdit(item)}
+          className="-my-1 -mr-3 grid size-11 shrink-0 place-items-center rounded-full text-muted-foreground active:bg-muted"
+        >
+          <Pencil aria-hidden className="size-4" strokeWidth={2} />
+        </button>
       </div>
     </div>
   );
 }
 
-/** The items grouped by category, the biggest share of the money first; discounts after; then the total. */
-function ItemsByCategory({ receipt, items, categories }: { receipt: Receipt; items: LineItem[]; categories: Category[] }) {
+/**
+ * The items grouped by category, the biggest share of the money first; discounts after; then the
+ * total. Once items are changed so they no longer add up to the total, says so, with a fix.
+ */
+function ItemsByCategory({
+  receipt,
+  items,
+  categories,
+  onEdit,
+  onUseItemsTotal,
+}: {
+  receipt: Receipt;
+  items: LineItem[];
+  categories: Category[];
+  onEdit: (item: LineItem) => void;
+  onUseItemsTotal: (cents: number) => void;
+}) {
   const groups = groupByCategory(items, receipt.split);
   const discounts = items.filter((i) => i.kind === 'discount');
   const count = items.length - discounts.length;
+  const itemsTotal = items.reduce((sum, i) => sum + i.lineTotal, 0);
   return (
     <section className="mt-7">
       <h2 className="mb-2 px-1 text-headline">
         {plural(count, 'item')}
         {groups.length > 1 && <span className="font-normal text-muted-foreground"> in {groups.length} categories</span>}
       </h2>
+      {itemsTotal > 0 && !itemsAddUp(items, receipt.total) && (
+        <div className="mb-3 rounded-2xl border border-warn/30 bg-warn/8 px-4 pb-1 pt-3 text-subhead">
+          <p className="flex gap-2">
+            <TriangleAlert aria-hidden className="mt-0.5 size-4 shrink-0 text-warn" strokeWidth={2.25} />
+            The items add up to {formatMoney(itemsTotal)}, but the total is {formatMoney(receipt.total)}.
+          </p>
+          <button type="button" className="min-h-11 pl-6 font-semibold text-primary" onClick={() => onUseItemsTotal(itemsTotal)}>
+            Make the total {formatMoney(itemsTotal)}
+          </button>
+        </div>
+      )}
       {/* Laid out like the paper it came from, torn edge and all. */}
       <div className="paper bg-card pb-6 pt-1">
         {groups.map((group) => {
@@ -89,7 +127,7 @@ function ItemsByCategory({ receipt, items, categories }: { receipt: Receipt; ite
                 <Meter value={group.amount / receipt.total} label={`${name}: share of this receipt`} />
               </div>
               {group.items.map((item) => (
-                <ItemRow key={item.id} item={item} categories={categories} />
+                <ItemRow key={item.id} item={item} categories={categories} onEdit={onEdit} />
               ))}
             </div>
           );
@@ -98,7 +136,7 @@ function ItemsByCategory({ receipt, items, categories }: { receipt: Receipt; ite
           <div className="pt-3">
             <h3 className="px-4 text-subhead font-semibold">Discounts</h3>
             {discounts.map((item) => (
-              <ItemRow key={item.id} item={item} categories={categories} />
+              <ItemRow key={item.id} item={item} categories={categories} onEdit={onEdit} />
             ))}
           </div>
         )}
@@ -108,7 +146,8 @@ function ItemsByCategory({ receipt, items, categories }: { receipt: Receipt; ite
         </div>
       </div>
       <p className="mt-2 px-1 text-footnote text-muted-foreground">
-        Change an item's category and it moves to that group. Spent remembers it for that product, on every receipt.
+        Change an item's category and it moves to that group. Money Manager remembers it for that product, on every receipt. Tap the pencil to fix an
+        item's name or price, or to delete it.
       </p>
     </section>
   );
@@ -125,13 +164,16 @@ export function ReceiptDetail() {
   const [name, setName] = useState('');
   const [total, setTotal] = useState('');
   const [note, setNote] = useState('');
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const editing = items?.find((i) => i.id === editingId) ?? null;
 
+  // Also when saved from elsewhere on the page ("Make the total…").
   useEffect(() => {
     if (!receipt) return;
     setName(receipt.storeName);
     setTotal(centsToInput(receipt.total));
     setNote(receipt.note);
-  }, [receipt?.id]);
+  }, [receipt?.id, receipt?.storeName, receipt?.total, receipt?.note]);
 
   if (receipt === undefined) return <Page title="" back="Back">{null}</Page>;
   if (receipt === null) {
@@ -153,6 +195,17 @@ export function ReceiptDetail() {
     if (!deleted) return;
     void navigate({ to: '/history' });
     toast('Receipt deleted', { label: 'Undo', run: () => void restoreReceipt(deleted) });
+  }
+
+  async function saveItem(item: LineItem, { categoryId, ...changes }: ItemFields) {
+    await updateItem(item.id!, changes);
+    if (item.kind === 'item' && categoryId !== item.categoryId) await setItemCategory(item.id!, categoryId);
+  }
+
+  async function removeItem(item: LineItem) {
+    setEditingId(null);
+    const deleted = await deleteItem(item.id!);
+    if (deleted) toast(`${item.kind === 'discount' ? 'Discount' : 'Item'} deleted`, { label: 'Undo', run: () => void restoreItems(deleted) });
   }
 
   function saveTotal() {
@@ -178,7 +231,7 @@ export function ReceiptDetail() {
         </a>
       )}
 
-      <Group>
+      <Group footer="Tap a detail to change it. Changes are saved straight away.">
         <FieldRow label="Shop" htmlFor="r-shop">
           <input id="r-shop" value={name} placeholder="Shop name" onChange={(e) => setName(e.target.value)} onBlur={() => name !== receipt.storeName && void updateReceipt(id, { storeName: name })} className={inputClass} />
         </FieldRow>
@@ -216,7 +269,15 @@ export function ReceiptDetail() {
         <Row title="Items" value={<span className="text-subhead font-normal text-muted-foreground">{itemCount ? plural(itemCount, 'item') : 'Not kept'}</span>} />
       </Group>
 
-      {receipt.itemized && items && items.length > 0 && <ItemsByCategory receipt={receipt} items={items} categories={categories} />}
+      {receipt.itemized && items && items.length > 0 && (
+        <ItemsByCategory
+          receipt={receipt}
+          items={items}
+          categories={categories}
+          onEdit={(item) => setEditingId(item.id!)}
+          onUseItemsTotal={(cents) => void updateReceipt(id, { total: cents })}
+        />
+      )}
       {receipt.source === 'scan' && !receipt.itemized && (
         <p className="mt-3 px-4 text-footnote text-muted-foreground">The items on this receipt couldn't be read reliably, so only its total was kept.</p>
       )}
@@ -226,6 +287,17 @@ export function ReceiptDetail() {
           Delete receipt
         </Button>
       </div>
+
+      <ItemSheet
+        item={editing}
+        itemKey={editingId}
+        categories={categories}
+        onSave={async (fields) => {
+          if (editing) await saveItem(editing, fields);
+        }}
+        onDelete={() => editing && void removeItem(editing)}
+        onClose={() => setEditingId(null)}
+      />
     </Page>
   );
 }

@@ -4,6 +4,7 @@ import { db, type Category, type LineItem, type Product, type Receipt, type Sett
 // The phone is the only copy of their data, so this is the safety net (docs/PLAN.md §10).
 // The Excel export is a report; only this file can be restored.
 
+// Kept as "spent" (the app's first name) so backups made before the rename still restore.
 const APP = 'spent';
 const VERSION = 1;
 
@@ -55,9 +56,9 @@ export class BackupError extends Error {}
 export async function restoreBackup(data: unknown): Promise<{ receipts: number }> {
   const backup = data as Partial<Backup>;
   if (!backup || backup.app !== APP || !Array.isArray(backup.receipts)) {
-    throw new BackupError("This file isn't a Spent backup.");
+    throw new BackupError("This file isn't a Money Manager backup.");
   }
-  if ((backup.version ?? 0) > VERSION) throw new BackupError('This backup was made by a newer version of Spent. Update the app first.');
+  if ((backup.version ?? 0) > VERSION) throw new BackupError('This backup was made by a newer version of Money Manager. Update the app first.');
   const thumbs = await Promise.all((backup.thumbs ?? []).map(async (t) => ({ receiptId: t.receiptId, image: await dataUrlToBlob(t.image) })));
   await db.transaction('rw', db.tables, async () => {
     await Promise.all(db.tables.map((t) => t.clear()));

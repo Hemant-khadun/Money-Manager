@@ -83,7 +83,7 @@ const logLine = (e: LogEntry) => `${e.at.slice(5, 23).replace('T', ' ')}  ${e.so
 
 function buildReport(facts: Facts, reader: string, scans: ReadScan[], log: readonly LogEntry[]): string {
   return [
-    'Spent problem report',
+    'Money Manager problem report',
     `Made ${new Date().toISOString().slice(0, 19).replace('T', ' ')} UTC`,
     '',
     ...facts.map(([label, value]) => `${label}: ${value}`),
@@ -132,7 +132,7 @@ export function Debug() {
 
   async function share() {
     try {
-      await navigator.share({ title: 'Spent problem report', text: report });
+      await navigator.share({ title: 'Money Manager problem report', text: report });
     } catch {
       // Closed without sharing.
     }
@@ -155,7 +155,7 @@ export function Debug() {
   return (
     <Page title="Problem report" back="Settings">
       <p className="mt-2 text-subhead text-muted-foreground">
-        Scanning not working? Try a photo here, then copy the report and send it. It shows what this phone can do and what Spent did, step by step. It
+        Scanning not working? Try a photo here, then copy the report and send it. It shows what this phone can do and what Money Manager did, step by step. It
         includes the text read from your photo, so look through it first. Nothing leaves your phone unless you send it.
       </p>
 

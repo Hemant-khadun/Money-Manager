@@ -83,6 +83,20 @@ describe('stitchPhotos', () => {
     expect(lines.map((l) => l.text)).toEqual(RECEIPT);
   });
 
+  it('joins photos that share only three lines, though the second photo lost a word from one of them', () => {
+    // The two halves of a test receipt as the reader read them: "HUILE TOURNESOL" came out as
+    // "HUILE", and "SUCRE ROUX 1KG" gained a "1". Only the prices read the same.
+    const top = ['INTERMART', 'Ebene,', 'No: 27670358', 'Date: 08/10/2026 14:32', 'LAIT UHT 1L 45.00', 'PAIN MAISON 25.00', 'COLGATE TP JR 110.00', 'PERETTE VANILLE 190.00'];
+    const shared = ['RIZ BASMATI 1KG 120.00', 'HUILE TOURNESOL 165.00', 'SUCRE ROUX 1 1KG 60.00'];
+    const sharedAgain = ['RIZ BASMATI 1KG 120.00', 'HUILE 165.00', 'SUCRE ROUX 1KG 60.00'];
+    const rest = ['CAFE MOULU 250G 145.00', 'BEURRE 250G 140.00', 'TOTAL 1000.00', 'CASH 1000.00', 'CHANGE 0.00'];
+    const read = (texts: string[]) => texts.map((t, i) => line(t, i));
+    const { lines, joins } = stitchPhotos([read([...top, ...shared]), read([...sharedAgain, ...rest])]);
+    expect(joins).toEqual([{ shared: 3 }]);
+    expect(lines).toHaveLength(top.length + 3 + rest.length);
+    expect(parseReceipt(lines, { today: TODAY })).toMatchObject({ total: 100000, itemsAddUp: true });
+  });
+
   it('puts photos picked in the wrong order back in order', () => {
     const top = photo(0, 14);
     const middle = photo(10, 24);

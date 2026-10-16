@@ -8,6 +8,10 @@ import type { ParsedItem } from './types';
 // Item names are taken from the normalised text (upper-case, accent-free), which is how
 // thermal receipts print them anyway and what product matching compares against.
 
+/** Lines read with less confidence than this make an item worth checking by eye (as when reading, pipeline/reading-plan). */
+const UNCLEAR_BELOW = 0.85;
+const unclear = (confidence: number) => (confidence < UNCLEAR_BELOW ? { unclear: true } : {});
+
 /** A number followed by a unit belongs to the product name ("COCA 1.25L"), it is not a price. */
 const UNIT_AFTER = /^\s?(?:KGS?|GRS?|G|LTRS?|LT|L|ML|CL|CM|MM|M)\b/;
 /** VAT code printed after the price: "45.00 V", "45.00(Z)", "45.00 *". */
@@ -168,16 +172,19 @@ export function parseItems(lines: Line[], totalIndex: number | null): ParsedItem
 
   const items: ParsedItem[] = [];
   let pendingName: string | null = null;
+  /** How sure the reader was of the line `pendingName` came from. */
+  let pendingNameConfidence = 1;
   /** A "2 X 45.00" line waiting to see whether the item below carries its total. */
-  let pendingQty: PricedLine | null = null;
+  let pendingQty: (PricedLine & { confidence: number }) | null = null;
   /** Lines that started with a VAT letter before the quantity ("A 1x …"): evidence of a VAT-code column. */
   let codeColumn = 0;
 
-  const push = (name: string, p: Pick<PricedLine, 'qty' | 'unitPrice' | 'lineTotal' | 'vatCode'>) =>
-    items.push({ name, qty: p.qty, unitPrice: p.unitPrice, lineTotal: p.lineTotal, vatCode: p.vatCode, kind: 'item' });
+  /** `confidence`: of the least clear line the item was read from. */
+  const push = (name: string, p: Pick<PricedLine, 'qty' | 'unitPrice' | 'lineTotal' | 'vatCode'>, confidence: number) =>
+    items.push({ name, qty: p.qty, unitPrice: p.unitPrice, lineTotal: p.lineTotal, vatCode: p.vatCode, kind: 'item', ...unclear(confidence) });
   // Nothing below claimed the quantity line: it was an item of its own, named by the line above it.
   const flushQty = () => {
-    if (pendingQty && isNameLike(pendingQty.name)) push(pendingQty.name, pendingQty);
+    if (pendingQty && isNameLike(pendingQty.name)) push(pendingQty.name, pendingQty, pendingQty.confidence);
     pendingQty = null;
   };
 
@@ -198,6 +205,7 @@ export function parseItems(lines: Line[], totalIndex: number | null): ParsedItem
       const name = cleanName(text);
       // Only the line directly above a nameless price can lend it a name, so header lines rarely leak in.
       pendingName = isNameLike(name) ? name : null;
+      pendingNameConfidence = line.confidence;
       continue;
     }
 
@@ -206,7 +214,7 @@ export function parseItems(lines: Line[], totalIndex: number | null): ParsedItem
     const negative = amounts[amounts.length - 1].value < 0;
     if (negative || (DISCOUNT_LINE.test(text) && (text.search(DISCOUNT_LINE) === 0 || ROUNDING.test(text)))) {
       flushQty();
-      items.push(discountKind(text, priced));
+      items.push({ ...discountKind(text, priced), ...unclear(line.confidence) });
       pendingName = null;
       continue;
     }
@@ -217,26 +225,29 @@ export function parseItems(lines: Line[], totalIndex: number | null): ParsedItem
         // "YAOURT 90.00" then "3 X 30.00": the quantity explains the item above.
         prev.qty = priced.qty;
         prev.unitPrice = priced.unitPrice;
+        Object.assign(prev, unclear(line.confidence));
       } else if (!priced.totalPrinted) {
         // "2 X 45.00" then "SAVON 90.00": wait for the next priced line.
         flushQty();
-        pendingQty = { ...priced, name: pendingName ?? '' };
+        pendingQty = { ...priced, name: pendingName ?? '', confidence: Math.min(line.confidence, pendingName ? pendingNameConfidence : 1) };
       }
       pendingName = null;
       continue;
     }
 
     if (pendingQty && priced.qty === 1 && isNameLike(priced.name) && sameTotal(pendingQty.lineTotal, priced.lineTotal)) {
-      push(priced.name, { ...priced, qty: pendingQty.qty, unitPrice: pendingQty.unitPrice });
+      push(priced.name, { ...priced, qty: pendingQty.qty, unitPrice: pendingQty.unitPrice }, Math.min(line.confidence, pendingQty.confidence));
       pendingQty = null;
       pendingName = null;
       continue;
     }
     flushQty();
 
-    const name = isNameLike(priced.name) ? priced.name : pendingName;
+    const named = isNameLike(priced.name);
+    const name = named ? priced.name : pendingName;
     pendingName = null;
-    if (name) push(name, priced); // a bare amount with no product name is never turned into an item
+    // A bare amount with no product name is never turned into an item.
+    if (name) push(name, priced, named ? line.confidence : Math.min(line.confidence, pendingNameConfidence));
   }
   flushQty();
   return codeColumn >= 2 ? stripVatColumn(items) : items;

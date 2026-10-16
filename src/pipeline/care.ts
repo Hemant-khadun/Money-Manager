@@ -3,7 +3,7 @@ import type { CareLevel } from './ocr-protocol';
 
 // How gently the receipt reader works, to stay within the phone's memory. When a phone runs out
 // of memory while reading, the browser closes the page and opens it again (Safari on iPhone does
-// this when reading on the graphics chip). Spent notices on the way back and reads more gently
+// this when reading on the graphics chip). Money Manager notices on the way back and reads more gently
 // on this phone from then on.
 
 const LEVEL_KEY = 'spent-reader-care';
@@ -55,7 +55,7 @@ export function resetCareLevel() {
 
 let restarted: boolean | undefined;
 
-/** Whether the page was closed while it was reading a photo last time; if so, Spent now reads more gently. Checked once, at start-up. */
+/** Whether the page was closed while it was reading a photo last time; if so, Money Manager now reads more gently. Checked once, at start-up. */
 export function restartedWhileReading(): boolean {
   if (restarted !== undefined) return restarted;
   const last = load<Reading>(READING_KEY);

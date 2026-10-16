@@ -45,7 +45,7 @@ export function SpikePage() {
   return (
     <main className="mx-auto max-w-5xl px-4 pb-16 pt-6">
       <header className="mb-6">
-        <p className="text-[15px] font-semibold text-primary">Spent</p>
+        <p className="text-[15px] font-semibold text-primary">Money Manager</p>
         <h1 className="text-[34px] font-bold tracking-[-0.02em]">Receipt reading test</h1>
         <p className="mt-1 text-[15px] text-muted-foreground">
           Before building the rest of the app, let's see how well it reads real receipts. Add photos, fix anything it got

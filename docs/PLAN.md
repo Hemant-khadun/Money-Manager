@@ -232,7 +232,7 @@ Because the summaries use formulas, they stay correct if you edit rows by hand i
 - Sizes are set in `rem`, so the phone's text-size setting still works.
 - Proportional digits for the hero and stat tiles; `tabular-nums` only in lists and tables where numbers must line up.
 
-**Colour tokens** (`src/styles/tokens.css`). The names follow **shadcn/ui** (`--background`, `--card`, `--primary`, `--muted-foreground`…), so components pasted from ui.shadcn.com or 21st.dev take on Spent's colours. Dark values under `prefers-color-scheme`, and again under `[data-theme='dark']` for the Light/Dark choice in Settings. Contrast checked: text ≥ 4.5:1, icons and marks ≥ 3:1.
+**Colour tokens** (`src/styles/tokens.css`). The names follow **shadcn/ui** (`--background`, `--card`, `--primary`, `--muted-foreground`…), so components pasted from ui.shadcn.com or 21st.dev take on Money Manager's colours. Dark values under `prefers-color-scheme`, and again under `[data-theme='dark']` for the Light/Dark choice in Settings. Contrast checked: text ≥ 4.5:1, icons and marks ≥ 3:1.
 
 | Token | Light | Dark |
 |---|---|---|
@@ -248,7 +248,7 @@ Because the summaries use formulas, they stay correct if you edit rows by hand i
 - shadcn's own `accent` token is a quiet hover background, not the brand colour; the brand colour is `primary`.
 - Status colours are **only** used for budget state, price and spending changes, and checksum results. They always come with an icon and a word ("Over by Rs 500"), never colour alone.
 - Categories each have a hue (`--hue-*`) for their icon tile, and shops get one from their name for the initials avatar. These are decoration only: the name and icon always identify the category, and no chart uses them.
-- `dark:` in Tailwind follows Spent's theme (the phone's setting unless Settings chose Light or Dark), so pasted components' dark styles work.
+- `dark:` in Tailwind follows Money Manager's theme (the phone's setting unless Settings chose Light or Dark), so pasted components' dark styles work.
 
 **Chart rules:**
 - Bars at most 24 px thick, with 4 px rounded tops and square bottoms. Lines 2 px; dots at least 8 px with a 2 px ring in the card colour; area under a line is a faint wash of its colour.
@@ -280,10 +280,10 @@ Because the summaries use formulas, they stay correct if you edit rows by hand i
 ```
 npx shadcn@latest add "https://21st.dev/r/<author>/<component>"
 ```
-- Pasted components land in `src/components/ui/`. Spent's own building blocks are in `src/components/primitives.tsx`, so the two never clash.
-- They pick up Spent's colours and dark mode as they are; restyle only what clashes with the principles above.
+- Pasted components land in `src/components/ui/`. Money Manager's own building blocks are in `src/components/primitives.tsx`, so the two never clash.
+- They pick up Money Manager's colours and dark mode as they are; restyle only what clashes with the principles above.
 - Check the weight before using one at startup: many use `framer-motion` or `recharts`, and `cn()` brings `tailwind-merge` (~7 KB). Fine on screens that load later; on Overview, compare with the budget.
-- Check each component's licence on its page before shipping it. The CLI may also add CSS variables to `src/index.css`; keep Spent's tokens.
+- Check each component's licence on its page before shipping it. The CLI may also add CSS variables to `src/index.css`; keep Money Manager's tokens.
 
 ## 8. Revised phases (most risky first, most useful first)
 
@@ -342,8 +342,11 @@ npx shadcn@latest add "https://21st.dev/r/<author>/<component>"
 ---
 
 ## 10. Decisions (confirmed)
-- **Name:** **Spent**. Tagline: "Snap your receipts. See where your money goes." All wording people see stays plain and everyday, never technical.
-- **Long receipts:** one receipt can have several photos, taken top to bottom with each repeating a few lines of the one before. Each photo is read on its own, then they are joined where they overlap (`src/pipeline/stitch.ts`); shared lines are kept once, in the clearer reading, and photos picked out of order are put back in order. No separate "long receipt" mode: photos added together are sorted automatically (`groupPhotos`): a photo continues another only when the shared lines sit at the very bottom of one and the very top of the other and both add lines of their own, so separate receipts from the same shop (same header and footer) stay apart. The scan screen offers "Keep them as separate receipts" to undo a join, and "Add another photo of this receipt" for photos taken later.
+- **Name:** **Money Manager** (first called Spent). Tagline: "Snap your receipts. See where your money goes." All wording people see stays plain and everyday, never technical.
+- **Long receipts:** one receipt can have several photos, taken top to bottom with each repeating a few lines of the one before. Each photo is read on its own, then they are joined where they overlap (`src/pipeline/stitch.ts`); shared lines are kept once, in the clearer reading, and photos picked out of order are put back in order. No separate "long receipt" mode: photos added together are sorted automatically (`groupPhotos`): a photo continues another only when the shared lines sit at the very bottom of one and the very top of the other and both add lines of their own, so separate receipts from the same shop (same header and footer) stay apart. The scan screen offers "These are separate receipts" to undo a join, and "Take the next part" (the camera) under every receipt, plus "Choose from your photos" on the check screen, for photos taken later; any photo can be taken back out. A receipt with no line saying it is the total (only a guessed one) is flagged as possibly cut off (`looksCutOff` in `src/scan/notes.ts`), and the button stands out. An unsaved receipt can be deleted, with Undo.
+- **Managing saved receipts:** every detail of a saved receipt changes in place (saved straight away); each item can be corrected (name, how many, price, category) or deleted, and once items no longer add up to the total the receipt says so, with "Make the total …". History has "Select" to delete several receipts at once. Every delete has Undo.
+- **Checking items before saving:** the review screen shows every item read, even when they don't add up, each with a pencil to correct it (name, how many, price, category) or take it off, and "Add a missing item". Lines the reader was unsure of (confidence below 0.85, as for its closer looks) are marked "Check". Items are saved only when they come to the total (±Rs 1); otherwise the screen says what they come to, with "Make the total …" unless the receipt seems cut off.
+- **Joining a long receipt's photos:** a shared line with the same price but a word lost or misread counts as a partial match (`PARTIAL` in `src/pipeline/stitch.ts`): it helps a join along but never on its own decides that two photos belong together. A receipt taken right after one that seems cut off, and not joined to it by itself, asks "Is this the rest of the receipt below?" (`joinInto`).
 - **Receipts:** any store, no per-store setup. Always save the essentials (store, date, total, category, payment method). Save items only when they add up to the total. Keep a ~30 KB thumbnail of the photo. Discard everything else after review.
 - **AI engine:** local-first (PP-OCRv5 + parser). Cloud Claude only when you tap the button for a receipt that failed (§2b).
 - **Users/devices:** one person per phone. You, colleagues and friends all use the same public website, and **each person's data stays only on their own phone**. Nobody can see anyone else's receipts, and no accounts or backend are needed. All data lives in the phone's IndexedDB, so:
@@ -392,7 +395,7 @@ receipt-tracker/
     components/    ReviewTable.tsx, KpiTile.tsx, CategoryMonthGrid.tsx, LargeTitleHeader.tsx, TabBar.tsx, Sheet.tsx
       charts/      MonthBars.tsx, BudgetMeter.tsx, Sparkline.tsx, PriceLine.tsx, StoreBars.tsx
       ui/          components added from shadcn/ui or 21st.dev (CLI target, see §7b)
-    components/primitives.tsx   Spent's own building blocks (cards, rows, buttons, segmented control)
+    components/primitives.tsx   Money Manager's own building blocks (cards, rows, buttons, segmented control)
     hooks/         useOcrWorker.ts, useMonthlyKpis.ts (useLiveQuery wrappers)
   fixtures/        receipts/*.jpg + *.expected.json (Phase 0 eval set)
   tests/           parser.spec.ts, kpi.spec.ts, eval.ts (accuracy report)

@@ -52,7 +52,7 @@ function BudgetRow({ category }: { category: Category }) {
 async function shareOrDownload(file: File): Promise<void> {
   if (navigator.canShare?.({ files: [file] })) {
     try {
-      await navigator.share({ files: [file], title: 'Spent backup' });
+      await navigator.share({ files: [file], title: 'Money Manager backup' });
       return;
     } catch (err) {
       if ((err as Error).name === 'AbortError') throw err;
@@ -80,7 +80,7 @@ export function Settings() {
   async function backUp() {
     const backup = await exportBackup();
     const day = backup.exportedAt.slice(0, 10);
-    const file = new File([JSON.stringify(backup)], `spent-backup-${day}.json`, { type: 'application/json' });
+    const file = new File([JSON.stringify(backup)], `money-manager-backup-${day}.json`, { type: 'application/json' });
     try {
       await shareOrDownload(file);
       await setSetting('lastBackupAt', backup.exportedAt);
@@ -147,7 +147,7 @@ export function Settings() {
           <Row
             title="Kept safe by the browser"
             value={<span className="text-muted-foreground">{kept ? 'Yes' : 'Not yet'}</span>}
-            subtitle={kept ? undefined : 'Add Spent to your home screen so the phone keeps its data.'}
+            subtitle={kept ? undefined : 'Add Money Manager to your home screen so the phone keeps its data.'}
           />
         )}
       </Group>

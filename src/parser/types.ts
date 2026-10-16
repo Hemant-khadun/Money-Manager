@@ -22,6 +22,8 @@ export interface ParsedItem {
   lineTotal: number;
   vatCode?: string;
   kind: 'item' | 'discount';
+  /** The reader wasn't sure of the line it came from: worth checking by eye. */
+  unclear?: boolean;
 }
 
 /** Per-store knowledge learned from the user's confirmed receipts. */

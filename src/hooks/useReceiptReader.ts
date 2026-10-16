@@ -75,6 +75,9 @@ type Batch = Array<{ scanId: number; photo: Photo }>;
 /** A photo added on its own may continue the receipt added just before it, if that was this recent. */
 const CONTINUE_WITHIN_MS = 10 * 60_000;
 
+/** How long a thrown-away receipt can still be brought back (a little longer than the "Undo" shows). */
+const UNDO_MS = 10_000;
+
 interface Job {
   scanId: number;
   photos: Photo[];
@@ -274,11 +277,33 @@ export function useReceiptReader(options: ReaderOptions = {}) {
   /** More photos of the same receipt (taken later, or that didn't overlap enough to be matched). */
   function addPhotosTo(scanId: number, files: FileList | File[] | null) {
     const scan = scansRef.current.find((s) => s.id === scanId);
-    if (!scan || !files?.length) return;
+    if (!files?.length) {
+      debugLog('app', 'No photo came back from the picker');
+      return;
+    }
+    if (!scan) return;
+    debugLog('app', `Added ${files.length === 1 ? 'a photo' : `${files.length} photos`} to a receipt`);
     void leaveBatch(scanId);
     const photos = [...scan.photos, ...toPhotos(files)];
     update(scanId, () => ({ photos, addedAt: Date.now() }));
     enqueue(scanId, photos);
+  }
+
+  /**
+   * The person says one receipt is the rest of another (the next part of a long one, which wasn't
+   * joined by itself): its photos go to that receipt, after its own. Nothing is read again.
+   */
+  function joinInto(scanId: number, intoId: number) {
+    const from = scansRef.current.find((s) => s.id === scanId);
+    const into = scansRef.current.find((s) => s.id === intoId);
+    if (!from || !into || scanId === intoId) return;
+    void leaveBatch(scanId);
+    void leaveBatch(intoId);
+    queue.current = queue.current.filter((j) => j.scanId !== scanId);
+    const photos = [...photosInOrder(into), ...photosInOrder(from)];
+    debugLog('app', `Joined two receipts into one, as asked (${photos.length} photos)`);
+    setScans((all) => all.filter((s) => s.id !== scanId).map((s) => (s.id === intoId ? { ...s, photos, joinedAutomatically: false, addedAt: Date.now() } : s)));
+    enqueue(intoId, photos);
   }
 
   function removePhoto(scanId: number, photoId: number) {
@@ -309,19 +334,44 @@ export function useReceiptReader(options: ReaderOptions = {}) {
     enqueue(scanId, scan.photos);
   }
 
-  /** Forgets a receipt (saved, or thrown away), freeing its photos. */
-  function remove(scanId: number) {
-    const scan = scansRef.current.find((s) => s.id === scanId);
+  /** Takes a receipt off the list; its photos are kept until `free`. */
+  function takeOff(scanId: number) {
     void leaveBatch(scanId);
-    for (const p of scan?.photos ?? []) {
-      URL.revokeObjectURL(p.url);
-      cache.current.delete(p.id);
-    }
     queue.current = queue.current.filter((j) => j.scanId !== scanId);
     setScans((all) => all.filter((s) => s.id !== scanId));
   }
 
-  return { engine, engineError, scans, warmUp, add, addPhotosTo, removePhoto, split, reread, remove };
+  function free(scan: ReadScan | undefined) {
+    for (const p of scan?.photos ?? []) {
+      URL.revokeObjectURL(p.url);
+      cache.current.delete(p.id);
+    }
+  }
+
+  /** Forgets a receipt (saved, or thrown away), freeing its photos. */
+  function remove(scanId: number) {
+    const scan = scansRef.current.find((s) => s.id === scanId);
+    takeOff(scanId);
+    free(scan);
+  }
+
+  /**
+   * Throws a receipt away, but keeps its photos for a little while: the returned function puts it
+   * back as it was (the "Undo" after deleting). Photos taken with the camera exist nowhere else.
+   */
+  function discard(scanId: number): () => void {
+    const scan = scansRef.current.find((s) => s.id === scanId);
+    if (!scan) return () => {};
+    takeOff(scanId);
+    const later = setTimeout(() => free(scan), UNDO_MS);
+    return () => {
+      clearTimeout(later);
+      setScans((all) => (all.some((s) => s.id === scanId) ? all : [scan, ...all]));
+      if (scan.status === 'queued' || scan.status === 'reading') enqueue(scan.id, scan.photos);
+    };
+  }
+
+  return { engine, engineError, scans, warmUp, add, addPhotosTo, joinInto, removePhoto, split, reread, remove, discard };
 }
 
 export type ReceiptReader = ReturnType<typeof useReceiptReader>;

@@ -191,6 +191,16 @@ describe('parseReceipt: supermarket', () => {
     expect(r.itemsSum).toBe(29272);
     expect(r.itemsAddUp).toBe(true);
   });
+
+  it('marks the items the reader was unsure of, so the person can check them', () => {
+    // Blurred: the name line of a two-line item, and a discount.
+    const blurred = (text: string) => (/^COCA COLA|^PROMO/.test(text) ? 0.6 : 0.95);
+    const read = parseReceipt(
+      SUPERMARKET.map((l) => ({ ...l, confidence: blurred(l.text) })),
+      { today: TODAY },
+    );
+    expect(read.items.filter((i) => i.unclear).map((i) => i.name)).toEqual(['COCA COLA 1.5L', 'PROMO COCA']);
+  });
 });
 
 describe('parseReceipt: restaurant (French, card, leading quantities)', () => {

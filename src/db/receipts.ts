@@ -18,6 +18,16 @@ export interface DraftItem {
   vatCode: string | null;
   categoryId: string;
   categorySource: CategorySource;
+  /** The reader wasn't sure of it (shown on the review screen, not saved). */
+  unclear?: boolean;
+}
+
+/** Items and a total that differ by no more than this (cents) add up: Rs 1, as when a receipt is read (parser/items). */
+export const ADDS_UP = 100;
+
+/** Whether a receipt's items (discounts included) come to its total. */
+export function itemsAddUp(items: ReadonlyArray<{ lineTotal: number }>, total: number): boolean {
+  return items.length > 0 && Math.abs(items.reduce((sum, i) => sum + i.lineTotal, 0) - total) <= ADDS_UP;
 }
 
 /** A receipt as checked on the review screen (or typed in), ready to save. */
@@ -33,7 +43,7 @@ export interface ReceiptDraft {
   vatTotal: number | null;
   discountTotal: number | null;
   categoryId: string;
-  /** Only when the items added up to the total. */
+  /** Everything read; only saved when they add up to the total. */
   items: DraftItem[];
   source: 'scan' | 'manual';
   note: string;
@@ -74,7 +84,7 @@ export async function saveReceipt(draft: ReceiptDraft, extras: { ocrLines?: OcrL
       createdAt: Date.now(),
     })) as number;
     await db.items.bulkAdd(
-      draft.items.map((item) => ({ ...item, receiptId, month, name: item.name.trim(), productKey: productKey(item.name) })),
+      draft.items.map(({ unclear: _, ...item }) => ({ ...item, receiptId, month, name: item.name.trim(), productKey: productKey(item.name) })),
     );
     if (extras.thumb) await db.thumbs.put({ receiptId, image: extras.thumb });
     return receiptId;
@@ -153,6 +163,81 @@ export async function setItemCategory(itemId: number, categoryId: string): Promi
   });
 }
 
+export type ItemChanges = Partial<Pick<LineItem, 'name' | 'qty' | 'lineTotal'>>;
+
+/**
+ * Corrects an item that was read wrongly: its name, how many, what it cost (the price for one
+ * follows). A new name is a new product: it takes the category known for that name, unless the
+ * person chose this item's category themselves, which then goes with the new name.
+ */
+export async function updateItem(itemId: number, changes: ItemChanges): Promise<void> {
+  await db.transaction('rw', [db.items, db.receipts, db.products], async () => {
+    const item = await db.items.get(itemId);
+    if (!item) return;
+    const patch: Partial<LineItem> = {};
+    const name = changes.name?.trim();
+    if (name && name !== item.name) {
+      patch.name = name;
+      patch.productKey = productKey(name);
+      const known = await db.products.get(patch.productKey);
+      if (item.categorySource === 'you') {
+        await db.products.put({ key: patch.productKey, name, categoryId: item.categoryId });
+      } else if (known) {
+        patch.categoryId = known.categoryId;
+        patch.categorySource = 'learned';
+      }
+    }
+    const qty = changes.qty ?? item.qty;
+    const lineTotal = changes.lineTotal ?? item.lineTotal;
+    if (qty > 0 && (qty !== item.qty || lineTotal !== item.lineTotal)) {
+      patch.qty = qty;
+      patch.lineTotal = lineTotal;
+      patch.unitPrice = Math.round(lineTotal / qty);
+    }
+    if (!Object.keys(patch).length) return;
+    await db.items.update(itemId, patch);
+    await resplit(item.receiptId);
+  });
+}
+
+export interface DeletedItems {
+  receiptId: number;
+  items: LineItem[];
+  /** Whether the receipt kept its items before. */
+  itemized: boolean;
+}
+
+/**
+ * Takes a line off a receipt (one read by mistake). Once its last item is gone, the receipt keeps
+ * its total only (discount lines on their own mean nothing). Returns what's needed to undo it.
+ */
+export async function deleteItem(itemId: number): Promise<DeletedItems | null> {
+  return db.transaction('rw', [db.items, db.receipts], async () => {
+    const item = await db.items.get(itemId);
+    const receipt = item && (await db.receipts.get(item.receiptId));
+    if (!item || !receipt) return null;
+    await db.items.delete(itemId);
+    const removed = [item];
+    const left = await db.items.where('receiptId').equals(item.receiptId).toArray();
+    if (!left.some((i) => i.kind === 'item')) {
+      await db.items.bulkDelete(left.map((i) => i.id!));
+      removed.push(...left);
+      await db.receipts.update(item.receiptId, { itemized: false });
+    }
+    await resplit(item.receiptId);
+    return { receiptId: item.receiptId, items: removed, itemized: receipt.itemized };
+  });
+}
+
+export async function restoreItems(deleted: DeletedItems): Promise<void> {
+  await db.transaction('rw', [db.items, db.receipts], async () => {
+    if (!(await db.receipts.get(deleted.receiptId))) return;
+    await db.items.bulkPut(deleted.items);
+    await db.receipts.update(deleted.receiptId, { itemized: deleted.itemized });
+    await resplit(deleted.receiptId);
+  });
+}
+
 export interface DeletedReceipt {
   receipt: Receipt;
   items: LineItem[];
@@ -178,6 +263,24 @@ export async function restoreReceipt(deleted: DeletedReceipt): Promise<void> {
     await db.receipts.put(deleted.receipt);
     await db.items.bulkPut(deleted.items);
     if (deleted.thumb) await db.thumbs.put(deleted.thumb);
+  });
+}
+
+/** Deletes several receipts at once (all or none); returns everything needed to undo it. */
+export async function deleteReceipts(ids: readonly number[]): Promise<DeletedReceipt[]> {
+  return db.transaction('rw', [db.receipts, db.items, db.thumbs], async () => {
+    const deleted: DeletedReceipt[] = [];
+    for (const id of ids) {
+      const one = await deleteReceipt(id);
+      if (one) deleted.push(one);
+    }
+    return deleted;
+  });
+}
+
+export async function restoreReceipts(deleted: readonly DeletedReceipt[]): Promise<void> {
+  await db.transaction('rw', [db.receipts, db.items, db.thumbs], async () => {
+    for (const one of deleted) await restoreReceipt(one);
   });
 }
 

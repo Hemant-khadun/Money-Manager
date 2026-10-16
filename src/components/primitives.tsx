@@ -2,7 +2,7 @@ import { Link } from '@tanstack/react-router';
 import { ArrowDown, ArrowUp, ChevronRight, Search, type LucideIcon } from 'lucide-react';
 import type { ComponentProps, CSSProperties, ReactNode } from 'react';
 
-// Spent's own building blocks (docs/PLAN.md §7b): cards on a quiet background, list rows with
+// Money Manager's own building blocks (docs/PLAN.md §7b): cards on a quiet background, list rows with
 // hairlines inset from the left, 44 px touch targets. Components pasted from shadcn/21st.dev go in
 // components/ui/ instead, and share the same colours.
 
@@ -55,9 +55,9 @@ interface RowProps {
   chevron?: boolean;
 }
 
-function RowBody({ icon, title, subtitle, value, below, chevron }: RowProps) {
+function RowBody({ icon, title, subtitle, value, below, chevron, divider = true }: RowProps & { divider?: boolean }) {
   return (
-    <div className="flex min-h-14 items-center gap-3 border-b border-border py-3 pr-4 group-last/row:border-b-0">
+    <div className={`flex min-h-14 items-center gap-3 py-3 pr-4 ${divider ? 'border-b border-border group-last/row:border-b-0' : ''}`}>
       {icon}
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline justify-between gap-3">
@@ -76,26 +76,38 @@ function RowBody({ icon, title, subtitle, value, below, chevron }: RowProps) {
 const rowClass = 'group/row block pl-4 transition-colors';
 const pressable = 'hover:bg-muted/50 active:bg-muted';
 
-/** A list row; a link when `to` is given. */
-export function Row(props: RowProps & { to?: string; params?: Record<string, string>; onClick?: () => void }) {
-  const { to, params, onClick, ...body } = props;
+/**
+ * A list row; a link when `to` is given. `extra` goes under it, outside what tapping the row does,
+ * for buttons of its own.
+ */
+export function Row(props: RowProps & { to?: string; params?: Record<string, string>; onClick?: () => void; pressed?: boolean; extra?: ReactNode }) {
+  const { to, params, onClick, pressed, extra, ...body } = props;
+  const divider = !extra;
+  let row: ReactNode;
   if (to) {
-    return (
+    row = (
       <Link to={to} params={params} className={`${rowClass} ${pressable}`}>
-        <RowBody chevron {...body} />
+        <RowBody chevron divider={divider} {...body} />
       </Link>
     );
-  }
-  if (onClick) {
-    return (
-      <button type="button" onClick={onClick} className={`${rowClass} ${pressable} w-full text-left`}>
-        <RowBody {...body} />
+  } else if (onClick) {
+    row = (
+      <button type="button" onClick={onClick} aria-pressed={pressed} className={`${rowClass} ${pressable} w-full text-left`}>
+        <RowBody divider={divider} {...body} />
       </button>
     );
+  } else {
+    row = (
+      <div className={rowClass}>
+        <RowBody divider={divider} {...body} />
+      </div>
+    );
   }
+  if (!extra) return row;
   return (
-    <div className={rowClass}>
-      <RowBody {...body} />
+    <div className="group/row">
+      {row}
+      <div className="ml-4 border-b border-border pb-3 pr-4 group-last/row:border-b-0">{extra}</div>
     </div>
   );
 }

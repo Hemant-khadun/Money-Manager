@@ -15,6 +15,10 @@ const WINDOW = 60;
 /** Two readings at least this similar are the same line (OCR rarely reads a line identically twice). */
 const SAME_LINE = 0.72;
 const MATCH_BONUS = 1;
+/** Two readings with the same price and at least this similar are probably the same line, one misread. */
+const PARTIAL_LINE = 0.45;
+/** Below MATCH_BONUS: not a clear match, so it never decides on its own that two photos belong together. */
+const PARTIAL = 0.9;
 const MISMATCH = -1;
 const GAP = -0.6;
 /** Cost of each line dropped at a photo's cut edge (half-cut lines, or lines the other photo also has). */
@@ -38,11 +42,17 @@ function keyOf(line: OcrLine): Key {
 function pairScore(a: Key, b: Key): number {
   // Very short lines ("A", "TL") say little about where they are.
   if (a.text.length < 4 || b.text.length < 4) return a.text && a.text === b.text ? 0.2 : -0.3;
-  const sim = similarity(a.text, b.text);
-  if (sim < SAME_LINE) return MISMATCH;
+  const priced = a.amounts.length > 0 && b.amounts.length > 0;
+  const samePrice = priced && a.amounts.some((v) => b.amounts.includes(v));
   // Same words but different prices are different lines: "0.714 KG … 399.53" vs "0.676 KG … 378.49".
-  if (a.amounts.length && b.amounts.length && !a.amounts.some((v) => b.amounts.includes(v))) return MISMATCH;
-  return MATCH_BONUS + sim;
+  if (priced && !samePrice) return MISMATCH;
+  const sim = similarity(a.text, b.text);
+  if (sim >= SAME_LINE) return MATCH_BONUS + sim;
+  // The same price and some of the same words: one photo lost or misread a word ("HUILE 165.00" for
+  // "HUILE TOURNESOL 165.00"; the line at a photo's edge is often blurred). Digits read reliably, so
+  // this is likely the same line; it helps a join along but never counts as a clear match.
+  if (samePrice && sim >= PARTIAL_LINE) return PARTIAL;
+  return MISMATCH;
 }
 
 type Step = 'both' | 'first' | 'second';

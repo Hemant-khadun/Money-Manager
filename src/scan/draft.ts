@@ -1,5 +1,5 @@
 import { categorizeItem, guessShopCategory } from '../categorize/categorize';
-import { findStore, type ReceiptDraft } from '../db/receipts';
+import { findStore, type DraftItem, type ReceiptDraft } from '../db/receipts';
 import { db } from '../db/schema';
 import type { ParsedReceipt } from '../parser/types';
 
@@ -7,14 +7,15 @@ import type { ParsedReceipt } from '../parser/types';
 
 /**
  * The draft for a scanned receipt: the known shop (by VAT number or name) and its category, or a
- * guess for a new shop; every item put in a category. Items are only kept when they add up to the
- * total, so wrong item data never gets in.
+ * guess for a new shop; every item read put in a category. The person can correct the items on
+ * the review screen; they are only saved when they add up to the total, so wrong item data never
+ * gets in.
  */
 export async function draftFromScan(parsed: ParsedReceipt, today: string): Promise<ReceiptDraft> {
   const store = await findStore(parsed.storeName, parsed.taxId);
   const products = await db.products.toArray();
   const shopCategory = store?.defaultCategoryId ?? guessShopCategory(parsed.storeName, parsed.items);
-  const items = parsed.itemsAddUp ? parsed.items : [];
+  const items = parsed.items;
   return {
     storeId: store?.id ?? null,
     storeName: store?.name ?? parsed.storeName ?? '',
@@ -37,6 +38,7 @@ export async function draftFromScan(parsed: ParsedReceipt, today: string): Promi
         vatCode: item.vatCode ?? null,
         categoryId: placed.categoryId,
         categorySource: placed.source,
+        unclear: item.unclear,
       };
     }),
     source: 'scan',
@@ -56,4 +58,32 @@ export function withMainCategory(draft: ReceiptDraft, categoryId: string): Recei
 /** The person puts one item in a category (remembered for that product when saved). */
 export function withItemCategory(draft: ReceiptDraft, index: number, categoryId: string): ReceiptDraft {
   return { ...draft, items: draft.items.map((i, k) => (k === index ? { ...i, categoryId, categorySource: 'you' as const } : i)) };
+}
+
+/** What the person can change about an item. */
+export type ItemFields = Pick<DraftItem, 'name' | 'qty' | 'lineTotal' | 'categoryId'>;
+
+/**
+ * The person corrects item `index`, or adds one the reader missed (`index` null). It counts as
+ * checked; a category they chose is remembered for that product when saved.
+ */
+export function withItem(draft: ReceiptDraft, index: number | null, fields: ItemFields): ReceiptDraft {
+  const before = index === null ? null : draft.items[index];
+  const priceChanged = !before || fields.qty !== before.qty || fields.lineTotal !== before.lineTotal;
+  const item: DraftItem = {
+    ...(before ?? { kind: 'item', vatCode: null, unitPrice: 0, categorySource: 'you' }),
+    name: fields.name.trim(),
+    qty: fields.qty,
+    lineTotal: fields.lineTotal,
+    unitPrice: priceChanged ? Math.round(fields.lineTotal / fields.qty) : before.unitPrice,
+    categoryId: fields.categoryId,
+    categorySource: before && fields.categoryId === before.categoryId ? before.categorySource : 'you',
+    unclear: false,
+  };
+  return { ...draft, items: index === null ? [...draft.items, item] : draft.items.map((i, k) => (k === index ? item : i)) };
+}
+
+/** The person takes off a line that isn't an item (read by mistake, or counted twice). */
+export function withoutItem(draft: ReceiptDraft, index: number): ReceiptDraft {
+  return { ...draft, items: draft.items.filter((_, k) => k !== index) };
 }

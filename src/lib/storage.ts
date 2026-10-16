@@ -1,7 +1,7 @@
 import { getSetting, setSetting } from '../db/backup';
 
 /**
- * Asks the browser to keep Spent's data (iPhones can otherwise clear a website's storage after
+ * Asks the browser to keep Money Manager's data (iPhones can otherwise clear a website's storage after
  * a week without visits). Asked once, when the first receipt is saved.
  */
 export async function askToKeepData(): Promise<void> {

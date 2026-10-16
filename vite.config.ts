@@ -22,8 +22,8 @@ export default defineConfig({
       injectRegister: false,
       includeAssets: ['favicon.svg', 'apple-touch-icon-180x180.png'],
       manifest: {
-        name: 'Spent',
-        short_name: 'Spent',
+        name: 'Money Manager',
+        short_name: 'Money Manager',
         description: 'Snap your receipts. See where your money goes, month by month.',
         lang: 'en',
         start_url: './',

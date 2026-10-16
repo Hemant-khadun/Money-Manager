@@ -3,7 +3,7 @@
 // printed in a logo (see known-shops.ts).
 
 export interface KnownShop {
-  /** How Spent writes the name. */
+  /** How Money Manager writes the name. */
   name: string;
   /** How it prints on receipts, upper case. Spaces may be missing on the receipt ("DREAM PRICE" / "DREAMPRICE"). */
   spellings: readonly string[];

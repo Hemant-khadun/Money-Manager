@@ -1,6 +1,6 @@
 # Phase 0 eval fixtures
 
-`receipts/<name>.json`: one real receipt each, made with Spent's receipt reading test page (`npm run dev`, then "All correct, save").
+`receipts/<name>.json`: one real receipt each, made with Money Manager's receipt reading test page (`npm run dev`, then "All correct, save").
 Each file holds the OCR lines plus the hand-checked answers (store, date, total in cents, payment, whether it lists items).
 
 - `npm run eval` re-parses every fixture with `"checked": true` and prints essentials accuracy and the items-add-up rate against the go/no-go gate in [docs/PLAN.md](../docs/PLAN.md) §8.

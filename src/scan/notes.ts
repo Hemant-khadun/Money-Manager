@@ -1,5 +1,14 @@
 import type { ReadScan } from '../hooks/useReceiptReader';
 
+/**
+ * The receipt seems to go on past the photo: writing was read, but no line saying it is the total
+ * (printed near the end). Any total found is then only a guess, the biggest amount: on the top of
+ * a long receipt, an item's price. (The photo may also just be hard to read there.)
+ */
+export function looksCutOff(scan: ReadScan): boolean {
+  return scan.status === 'done' && !!scan.lines?.length && scan.parsed?.totalConfidence === 'low';
+}
+
 /** Problems joining the photos of a long receipt, in plain words. */
 export function joinNotes(scan: ReadScan): string[] {
   if (!scan.joins || scan.photos.length < 2) return [];

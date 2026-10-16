@@ -1,7 +1,7 @@
 import Dexie, { type EntityTable } from 'dexie';
 import type { PaymentMethod, StoreHints } from '../parser/types';
 
-// Everything Spent knows lives here, in the phone's own storage (IndexedDB). Nothing is sent
+// Everything Money Manager knows lives here, in the phone's own storage (IndexedDB). Nothing is sent
 // anywhere. Money is always whole cents. Schema changes only ever add (db.version(n + 1)):
 // people's data can't be fixed by hand.
 

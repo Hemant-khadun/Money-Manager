@@ -9,6 +9,7 @@ export function Sheet({
   title,
   children,
   footer,
+  nested = false,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -16,9 +17,12 @@ export function Sheet({
   children: ReactNode;
   /** Stays visible under the scrolling content (the main button). */
   footer?: ReactNode;
+  /** Opened from inside another sheet (rendered within its content): that sheet steps back behind it. */
+  nested?: boolean;
 }) {
+  const Root = nested ? Drawer.NestedRoot : Drawer.Root;
   return (
-    <Drawer.Root open={open} onOpenChange={onOpenChange} shouldScaleBackground repositionInputs={false}>
+    <Root open={open} onOpenChange={onOpenChange} shouldScaleBackground={!nested} repositionInputs={false}>
       <Drawer.Portal>
         <Drawer.Overlay className="fixed inset-0 z-40 bg-black/45 backdrop-blur-[2px]" />
         <Drawer.Content
@@ -31,6 +35,6 @@ export function Sheet({
           {footer && <div className="shrink-0 border-t border-border px-4 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-3">{footer}</div>}
         </Drawer.Content>
       </Drawer.Portal>
-    </Drawer.Root>
+    </Root>
   );
 }

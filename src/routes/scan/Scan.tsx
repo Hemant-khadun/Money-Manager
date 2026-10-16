@@ -1,12 +1,14 @@
-import { Camera, Images, Layers, PenLine, ShieldCheck } from 'lucide-react';
+import { Camera, Images, Layers, PenLine, ShieldCheck, TriangleAlert } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useApp } from '../../app/AppContext';
 import { Page } from '../../components/Page';
+import { useToast } from '../../components/Toast';
 import { Group, Row, buttonBase, buttonKinds } from '../../components/primitives';
 import { photosInOrder, type ReadScan } from '../../hooks/useReceiptReader';
 import { restartedWhileReading } from '../../pipeline/care';
-import { debugLog } from '../../lib/debug-log';
 import { formatMoney } from '../../lib/format';
+import { looksCutOff } from '../../scan/notes';
+import { PhotoInput } from './PhotoInput';
 import { ReviewSheet } from './ReviewSheet';
 
 // Scan: take or pick photos, watch them being read, then check each receipt and save it.
@@ -19,7 +21,8 @@ function status(scan: ReadScan, ready: boolean): string {
   if (scan.status === 'reading') return `${scan.step ?? (ready ? 'Getting started' : 'Getting ready, the first time takes a moment')}…`;
   if (scan.status === 'error') return scan.problem ?? "Couldn't read this photo";
   if (!scan.lines?.length) return `${photos}Couldn't find any writing. Try a closer photo in good light`;
-  const total = scan.parsed?.total;
+  // A cut-off receipt's "total" is only a guess (an item's price): not shown as if it were the total.
+  const total = looksCutOff(scan) ? null : scan.parsed?.total;
   return `${photos}Ready to check${total ? ` · ${formatMoney(total)}` : ''}`;
 }
 
@@ -75,8 +78,66 @@ function useCreep(progress: ReadScan['progress']): number | undefined {
   return value;
 }
 
+/**
+ * Under a receipt in the list: take a photo of the rest of it. A plain link, or, when no total was
+ * found at the bottom (the end of the receipt seems to be missing), a warning with a button.
+ */
+function NextPart({ scan, onPhotos }: { scan: ReadScan; onPhotos: (files: FileList | null) => void }) {
+  if (looksCutOff(scan)) {
+    return (
+      <div className="pl-15">
+        <p className="flex gap-2 text-subhead">
+          <TriangleAlert aria-hidden className="mt-0.5 size-4 shrink-0 text-warn" strokeWidth={2.25} />
+          This receipt may be cut off: there's no total at the bottom.
+        </p>
+        <label className={`${buttonBase} ${buttonKinds.primary} mt-2 w-fit cursor-pointer`}>
+          <Camera aria-hidden className="size-5" strokeWidth={2} />
+          Take the next part
+          <PhotoInput camera onPhotos={onPhotos} />
+        </label>
+      </div>
+    );
+  }
+  return (
+    <label className="-mt-2 ml-15 flex min-h-11 w-fit cursor-pointer items-center gap-1.5 text-subhead font-medium text-primary">
+      <Camera aria-hidden className="size-4" strokeWidth={2} />
+      Cut off? Take the next part
+      <PhotoInput camera onPhotos={onPhotos} />
+    </label>
+  );
+}
+
+/** Under a receipt taken right after one that seems cut off, and not joined to it by itself. */
+function JoinBelow({ onJoin }: { onJoin: () => void }) {
+  return (
+    <div className="pl-15">
+      <p className="text-subhead">Is this the rest of the receipt below?</p>
+      <button type="button" className={`${buttonBase} ${buttonKinds.primary} mt-2 w-fit`} onClick={onJoin}>
+        Yes, join them
+      </button>
+    </div>
+  );
+}
+
 /** One receipt in the list: being read (with how far along), ready to check, or failed. */
-function ScanRow({ scan, ready, onOpen, onRetry, onRemove }: { scan: ReadScan; ready: boolean; onOpen: () => void; onRetry: () => void; onRemove: () => void }) {
+function ScanRow({
+  scan,
+  ready,
+  onOpen,
+  onRetry,
+  onRemove,
+  onMorePhotos,
+  onJoinBelow,
+}: {
+  scan: ReadScan;
+  ready: boolean;
+  onOpen: () => void;
+  onRetry: () => void;
+  onRemove: () => void;
+  onMorePhotos: (files: FileList | null) => void;
+  /** It may be the rest of the receipt below it in the list: join them. */
+  onJoinBelow?: () => void;
+}) {
   const reading = scan.status === 'reading';
   const creep = useCreep(reading ? scan.progress : undefined);
   const percent = reading && creep !== undefined ? Math.round(creep * 100) : undefined;
@@ -96,6 +157,13 @@ function ScanRow({ scan, ready, onOpen, onRetry, onRemove }: { scan: ReadScan; r
         )
       }
       below={reading && <ReadingBar percent={percent} />}
+      extra={
+        onJoinBelow ? (
+          <JoinBelow onJoin={onJoinBelow} />
+        ) : (
+          scan.status !== 'error' && (scan.status !== 'done' || !!scan.lines?.length) && <NextPart scan={scan} onPhotos={onMorePhotos} />
+        )
+      }
       value={
         percent !== undefined ? (
           <span className="text-subhead text-muted-foreground">{percent}%</span>
@@ -147,6 +215,7 @@ function ScanPicture() {
 
 export function Scan() {
   const { reader, setAddExpenseOpen } = useApp();
+  const toast = useToast();
   const [openId, setOpenId] = useState<number | null>(null);
   const { engine, engineError, warmUp, scans } = reader;
   const open = scans.find((s) => s.id === openId && s.status === 'done') ?? null;
@@ -164,42 +233,38 @@ export function Scan() {
     list.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, [scans.length]);
 
-  const picker = (multiple: boolean, capture: boolean) => (
-    <input
-      type="file"
-      accept="image/*"
-      multiple={multiple}
-      capture={capture ? 'environment' : undefined}
-      className="sr-only"
-      onClick={() => debugLog('app', `Opened the ${capture ? 'camera' : 'photo picker'}`)}
-      onChange={(e) => {
-        justChosen.current = reader.add(e.target.files).length > 0;
-        e.target.value = '';
-      }}
-    />
-  );
+  const addPhotos = (files: FileList | null) => {
+    justChosen.current = reader.add(files).length > 0;
+  };
 
   return (
     <Page title="Scan" glow>
       {!busy && restartedWhileReading() && (
         <p className="panel mt-3 p-4 text-subhead" role="status">
-          Spent had to start again while reading your last photo, probably because the phone ran short of memory. It now reads more gently, which takes
+          Money Manager had to start again while reading your last photo, probably because the phone ran short of memory. It now reads more gently, which takes
           a little longer. Please add the photo again.
         </p>
       )}
       {busy && (
         <div ref={list} className="scroll-mt-16">
           <Group title="Receipts">
-            {scans.map((scan) => (
-              <ScanRow
-                key={scan.id}
-                scan={scan}
-                ready={!!engine}
-                onOpen={() => setOpenId(scan.id)}
-                onRetry={() => reader.reread(scan.id)}
-                onRemove={() => reader.remove(scan.id)}
-              />
-            ))}
+            {scans.map((scan, k) => {
+              // Newest first: the one below was taken just before. If it seems cut off, this may be its next part.
+              const below = scans[k + 1];
+              const joinable = scan.status === 'done' && !!scan.lines?.length && !!below && looksCutOff(below);
+              return (
+                <ScanRow
+                  key={scan.id}
+                  scan={scan}
+                  ready={!!engine}
+                  onOpen={() => setOpenId(scan.id)}
+                  onRetry={() => reader.reread(scan.id)}
+                  onRemove={() => reader.remove(scan.id)}
+                  onMorePhotos={(files) => reader.addPhotosTo(scan.id, files)}
+                  onJoinBelow={joinable ? () => reader.joinInto(scan.id, below.id) : undefined}
+                />
+              );
+            })}
           </Group>
         </div>
       )}
@@ -213,20 +278,20 @@ export function Scan() {
             <ScanPicture />
             <p className="relative mt-5 text-center text-headline">Snap a receipt</p>
             <p className="relative mx-auto mt-1 max-w-72 text-center text-subhead text-muted-foreground">
-              Spent finds the shop, the date, the total and each thing you bought.
+              Money Manager finds the shop, the date, the total and each thing you bought.
             </p>
           </>
         )}
         <label className={`${buttonBase} ${buttonKinds.primary} relative mt-5 min-h-14 cursor-pointer text-headline`}>
           <Camera aria-hidden className="size-6" strokeWidth={1.9} />
           Take a photo
-          {picker(false, true)}
+          <PhotoInput camera onPhotos={addPhotos} />
         </label>
         <div className="relative mt-2.5 grid grid-cols-2 gap-2.5">
           <label className={`${tileButton} cursor-pointer`}>
             <Images aria-hidden className="size-5 text-primary" strokeWidth={2} />
             Choose photos
-            {picker(true, false)}
+            <PhotoInput multiple onPhotos={addPhotos} />
           </label>
           <button type="button" className={tileButton} onClick={() => setAddExpenseOpen(true)}>
             <PenLine aria-hidden className="size-5 text-primary" strokeWidth={2} />
@@ -241,8 +306,8 @@ export function Scan() {
         </span>
         <p className="text-footnote text-muted-foreground">
           <strong className="block text-subhead font-semibold text-foreground">Long receipt?</strong>
-          Take a few photos from top to bottom, each one repeating two or three lines of the one before. Spent joins them into one receipt. No need to
-          wait: take them one after another, or choose them together.
+          Photograph the top first, then tap <strong className="font-semibold text-foreground">Take the next part</strong> under it for the rest. Let each
+          photo repeat two or three lines of the one before, and Money Manager joins them into one receipt. You can also choose several photos together.
         </p>
       </div>
       <p className="mt-3 flex items-start gap-2 px-1 text-footnote text-muted-foreground" role="status">
@@ -268,6 +333,14 @@ export function Scan() {
         onSplit={(scan) => {
           setOpenId(null);
           reader.split(scan.id);
+        }}
+        onRemovePhoto={(scan, photoId) => {
+          setOpenId(null);
+          reader.removePhoto(scan.id, photoId);
+        }}
+        onDelete={(scan) => {
+          setOpenId(null);
+          toast('Receipt deleted', { label: 'Undo', run: reader.discard(scan.id) });
         }}
       />
     </Page>
