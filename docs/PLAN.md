@@ -412,7 +412,7 @@ receipt-tracker/
 
 **Redesign (2026-10-11):** new look (§7b): shadcn-named colour tokens with an indigo accent, cards, odometer hero figure, a day-by-day "this month against last month" chart with month-end pace, 2×2 stat tiles, sideways price cards, tinted category icons, receipt items laid out as torn paper, a new Scan screen. Mid-month, the change badge now compares with the same day of last month. Set up for adding 21st.dev/shadcn components (`components.json`, `@/` path, `cn()`). Checked in headless Chrome at phone size in light and dark; app-shell JS 148.7 KB gzip.
 
-**Not yet:** Excel export (Phase 4); PWA icons, install prompt, update toast and GitHub Pages deploy (Phase 5); cloud fallback (Phase 2b); personal inflation (basket index); joining one product's different names by hand; editing category names; backup reminder after 30 days; Phase 0 accuracy measurement on 30+ real receipts.
+**Not yet:** Excel export (Phase 4); PWA icons, install prompt, update toast and GitHub Pages deploy (Phase 5); cloud fallback (Phase 2b); personal inflation (basket index); joining one product's different names by hand; editing category names; Phase 0 accuracy measurement on 30+ real receipts. (The backup reminder and the update bar came with §14, 2026-10-16.)
 
 ## 14. Fixes and improvements (review of 2026-10-16)
 A review of the whole app (208 tests passing, type check clean) found gaps that can lose receipts or show wrong numbers, and a few promises the app doesn't keep yet. The order: first finish the change in progress safely, then protect people's data and numbers, then offline use (which needs step 2a first, see step 4), then the rest. Step 6 is the one only you can do, and can start now, alongside the others. Every step ends with tests; the whole list is checked on real phones at the end.
@@ -474,3 +474,22 @@ A review of the whole app (208 tests passing, type check clean) found gaps that 
 **Still to build from the original plan (separate from this list):** Excel export (Phase 4), cloud fallback (Phase 2b), first-run screen and install prompt (Phase 5), personal inflation, joining a product's different names by hand.
 
 **Final check, iPhone and Android:** close the app while it reads two photos, then open it again: both are back. Choose the same photo twice: warned. A receipt with a date in the future: caught. A failed save: says so. Restore an older backup, then Undo. Airplane mode: scanning still works. Deploy a new version: the bar shows, and nothing is lost.
+
+### Progress (2026-10-16)
+**Done: steps 1 to 5**, one commit each (5d with step 4). 231 tests pass, type check clean.
+- **1.** Price changes only use receipts whose items add up (`src/kpi/adds-up.ts`: `itemsAddUp`, `receiptsAddingUp`); the "based on X of Y" count matches. §10 updated.
+- **2a.** `pending` table (`db.version(2)`); `src/scan/pending.ts`; the app's reader (`useReceiptReader({ keep: true })`) writes each unsaved receipt as it changes and brings them back at start-up, already-read ones without reading again (and without starting the reader). The test page's reader doesn't keep anything. Backup leaves the table out; restore leaves it alone.
+- **2b.** `src/lib/safely.ts` (`attempt`, `problemWords`) and `useSafely()` in `Toast.tsx`; the toast's problem look (warning icon, `bad` border, 8 s). Every save, change, delete, Undo and restore goes through it; the item sheet stays open when saving fails.
+- **2c.** `readBackup`, `restoreQuestion`, `restoreBackup` (gives back what was on the phone) and `undoRestore` in `src/db/backup.ts`; a restored phone counts as backed up at the backup's date. `backupDue` in `src/db/backup-due.ts`; the card is `src/components/BackupReminder.tsx`, loaded only when due; backing up is `useBackUp()` (`src/hooks/useBackUp.ts`), used by Settings too.
+- **3a.** `dateFromScan` in `src/scan/draft.ts`; `FUTURE_DATE` in `src/kpi/monthly.ts`; `max` = today on the review and receipt date fields; saving refuses a future date (review, add expense, receipt detail); "Check the date" in History.
+- **3b.** `findDuplicate` in `src/db/receipts.ts` (same date and total; same shop by id, or by name when both have one), `useDuplicate` (`src/hooks/useDuplicate.ts`), `DuplicateNote`; "Save it again" / "Add it again"; `sameAsAnother` (`src/scan/notes.ts`) marks the Scan list.
+- **4.** `src/components/UpdateBar.tsx` registers the offline helper (`useRegisterSW`, loaded after start-up, checks for a new version hourly); the bar waits while a receipt is read. Latin Inter only in the precache. "Offline helper" line in the problem report.
+- **5a.** `parseForShop` (`src/parser/read-for-shop.ts`): read, find the shop, read again with its hints. **5b.** Reading test row at the bottom of `#/debug` ("For developers"); Settings' group is now "Help". **5c.** Packages removed, §7 updated. **5d.** Start-up JS 147.2 KB gzip (it had reached 161 KB while building these steps): `usePrices` and `useDuplicate` moved out of `hooks/data.ts`, the OCR client loads on first use, the backup reminder only when due. `npm run check-size` (`scripts/check-size.mjs`, JS only, CSS listed) runs in the deploy workflow after the build.
+
+**Checked in headless Chrome at phone size (built app, `vite preview`), all passing:** backup reminder; "Check the date" in History; duplicate warning in Add expense; the problem toast in light and dark; restore question, "Restored 1 receipt", Undo; two photos kept while read and back after a reload; look-alike receipts marked; offline helper running and reported; the app opens offline; a new build shows the bar, and Reload takes it.
+
+**Next:**
+- **Step 6 (yours):** 30+ real receipts in `fixtures/receipts/`, `npm run eval`, result in §13.
+- **Step 7:** after step 6's result (parser work first if below the gate). Nothing started.
+- **Final check on real phones** (above), not yet done: the iPhone reload-while-reading case especially.
+- 5d asked for 5–10 KB of headroom; it is 2.8 KB. More would mean loading the reader hook later, or the charts; not done.
