@@ -3,8 +3,6 @@ import { CalendarDays, ChevronLeft, ChevronRight, Leaf, ReceiptText, ScanLine, S
 import { lazy, Suspense, useMemo, type ReactNode } from 'react';
 import { useApp } from '../app/AppContext';
 import { categoryName } from '../components/CategoryPicker';
-import { MonthBars } from '../components/charts/MonthBars';
-import { PaceChart } from '../components/charts/PaceChart';
 import { MoneyHero } from '../components/Money';
 import { Page } from '../components/Page';
 import { Button, ChangeBadge, EmptyState, IconButton, buttonBase, buttonKinds, rise } from '../components/primitives';
@@ -32,6 +30,11 @@ import {
 // Starts loading with this screen, alongside the first look at the database.
 const details = import('./OverviewDetails');
 const OverviewDetails = lazy(() => details.then((m) => ({ default: m.OverviewDetails })));
+// The charts too: they draw once the receipts are in, so they needn't hold up opening the app.
+const pace = import('../components/charts/PaceChart');
+const bars = import('../components/charts/MonthBars');
+const PaceChart = lazy(() => pace.then((m) => ({ default: m.PaceChart })));
+const MonthBars = lazy(() => bars.then((m) => ({ default: m.MonthBars })));
 // Only when it is time to back up.
 const BackupReminder = lazy(() => import('../components/BackupReminder'));
 
@@ -122,7 +125,9 @@ export function Overview() {
 
       {data && s && (s.total > 0 || s.previousTotal > 0) && (
         <div {...enter('mt-6')}>
-          <PaceChart month={month} current={data.current} previous={data.previous} upTo={data.days} projected={s.projected} />
+          <Suspense fallback={null}>
+            <PaceChart month={month} current={data.current} previous={data.previous} upTo={data.days} projected={s.projected} />
+          </Suspense>
         </div>
       )}
 
@@ -145,7 +150,9 @@ export function Overview() {
 
       {data && (
         <div {...enter('mt-3')}>
-          <MonthBars data={data.trend} selected={month} onSelect={setMonth} title="Last six months" label="Spending per month, last six months" />
+          <Suspense fallback={null}>
+            <MonthBars data={data.trend} selected={month} onSelect={setMonth} title="Last six months" label="Spending per month, last six months" />
+          </Suspense>
         </div>
       )}
 

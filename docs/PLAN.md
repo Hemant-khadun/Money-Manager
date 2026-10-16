@@ -492,7 +492,7 @@ A review of the whole app (208 tests passing, type check clean) found gaps that 
 - **Step 6 (yours):** 30+ real receipts in `fixtures/receipts/`, `npm run eval`, result in §13.
 - **Step 7:** after step 6's result (parser work first if below the gate). Nothing started.
 - **Final check on real phones** (above), not yet done: the iPhone reload-while-reading case especially.
-- 5d asked for 5–10 KB of headroom; it is 2.8 KB. More would mean loading the reader hook later, or the charts; not done.
+- 5d asked for 5–10 KB of headroom: the Overview charts now load alongside the first database read, not with the app, so start-up JS is 144.3 KB (5.7 KB under). Not yet looked at in a browser. Loading the reader hook later would mean splitting it (it brings back unsaved photos at start-up); not done.
 
 ## 15. Later idea: a gentle reminder of expenses that often go together (not yet; after §14)
 **The idea:** a shop trip often comes with spending the app never sees, because there's no receipt or the person forgot: petrol on a supermarket run, lunch out at the mall, parking. If the app could, now and then, quietly ask "you often buy petrol around now too — add it?", it would feel like it understands the person's week, and catch spending that would otherwise be missed.
