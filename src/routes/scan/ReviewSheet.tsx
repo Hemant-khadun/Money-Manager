@@ -87,7 +87,7 @@ function MorePhotos({ cutOff, guessed, onPhotos }: { cutOff: boolean; guessed: b
 /**
  * Everything read as an item, each with a pencil to correct it or take it off, and a way to add one
  * the reader missed. Items the reader was unsure of are marked "Check". Says whether they come to
- * the total, since only then are they saved, with a fix for when the total is what's wrong.
+ * the total, with a fix for when the total is what's wrong. They are saved as they are shown.
  */
 function ReviewItems({
   draft,
@@ -124,8 +124,8 @@ function ReviewItems({
             <TriangleAlert aria-hidden className="mt-0.5 size-4 shrink-0 text-warn" strokeWidth={2.25} />
             <span>
               The items come to {formatMoney(itemsTotal)}
-              {total ? `, but the total is ${formatMoney(total)}` : ''}. {cutOff ? 'Take the next part of the receipt, or fix' : 'Fix'} the items
-              {unclear ? ' (start with the ones marked "Check")' : ''} so they add up, or only the total will be saved.
+              {total ? `, but the total is ${formatMoney(total)}` : ''}. {cutOff ? 'Take the next part of the receipt, or check' : 'Check'} the items
+              {unclear ? ' (start with the ones marked "Check")' : ''}: one may have been read wrongly. They are saved as you see them here.
             </span>
           </p>
           {!cutOff && itemsTotal > 0 && (
@@ -231,9 +231,9 @@ export function ReviewSheet({ scan, onClose, onSaved, onAddPhotos, onSplit, onRe
     try {
       const top = photosInOrder(scan)[0];
       const thumb = top ? await makeThumbnail(top.file) : null;
-      // Items are saved only when they come to the total, so wrong item data never gets in.
-      const items = itemsAddUp(draft.items, total) ? draft.items : [];
-      await saveReceipt({ ...draft, total, items }, { ocrLines: scan.lines, thumb });
+      // The items are saved as the person saw them on this screen, adding up or not: the receipt
+      // keeps its total either way, and says when its items don't add up to it.
+      await saveReceipt({ ...draft, total }, { ocrLines: scan.lines, thumb });
       void askToKeepData();
       toast(`Saved to ${monthName(draft.date.slice(0, 7))}`);
       onSaved(scan);

@@ -86,13 +86,17 @@ function ItemsByCategory({
   const discounts = items.filter((i) => i.kind === 'discount');
   const count = items.length - discounts.length;
   const itemsTotal = items.reduce((sum, i) => sum + i.lineTotal, 0);
+  const addsUp = itemsAddUp(items, receipt.total);
+  // A group's share differs from what its items cost by the discounts spread over it; when the
+  // items don't add up, also by the gap, so it isn't called a discount then.
+  const discounted = addsUp && discounts.length > 0;
   return (
     <section className="mt-7">
       <h2 className="mb-2 px-1 text-headline">
         {plural(count, 'item')}
         {groups.length > 1 && <span className="font-normal text-muted-foreground"> in {groups.length} categories</span>}
       </h2>
-      {itemsTotal > 0 && !itemsAddUp(items, receipt.total) && (
+      {itemsTotal > 0 && !addsUp && (
         <div className="mb-3 rounded-2xl border border-warn/30 bg-warn/8 px-4 pb-1 pt-3 text-subhead">
           <p className="flex gap-2">
             <TriangleAlert aria-hidden className="mt-0.5 size-4 shrink-0 text-warn" strokeWidth={2.25} />
@@ -116,7 +120,7 @@ function ItemsByCategory({
                     <h3 className="truncate text-subhead font-semibold">{name}</h3>
                     <p className="text-footnote text-muted-foreground">
                       {plural(group.items.length, 'item')}
-                      {group.amount !== group.itemsTotal && ` · ${formatMoney(group.itemsTotal)} before discounts`}
+                      {discounted && group.amount !== group.itemsTotal && ` · ${formatMoney(group.itemsTotal)} before discounts`}
                     </p>
                   </div>
                   <div className="shrink-0 text-right">

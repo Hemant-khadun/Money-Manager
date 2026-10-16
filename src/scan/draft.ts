@@ -7,9 +7,8 @@ import type { ParsedReceipt } from '../parser/types';
 
 /**
  * The draft for a scanned receipt: the known shop (by VAT number or name) and its category, or a
- * guess for a new shop; every item read put in a category. The person can correct the items on
- * the review screen; they are only saved when they add up to the total, so wrong item data never
- * gets in.
+ * guess for a new shop; every item read put in a category. The person corrects the items on the
+ * review screen, where they see whether they add up to the total; they are saved as shown there.
  */
 export async function draftFromScan(parsed: ParsedReceipt, today: string): Promise<ReceiptDraft> {
   const store = await findStore(parsed.storeName, parsed.taxId);

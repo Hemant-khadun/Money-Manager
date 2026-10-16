@@ -84,9 +84,18 @@ describe('saving a receipt', () => {
     expect((await db.items.where('receiptId').equals(id).toArray()).some((i) => 'unclear' in i)).toBe(false);
   });
 
-  it('keeps no items for a receipt whose items did not add up', async () => {
+  it('puts the whole total of a receipt without items in its category', async () => {
     const id = await saveReceipt(draft({ items: [] }));
     expect((await db.receipts.get(id))!).toMatchObject({ itemized: false, split: [{ categoryId: 'groceries', amount: 30000 }] });
+  });
+
+  it('keeps the items the person saw even when they do not add up, the total shared out over them', async () => {
+    // One price read wrongly: the items come to Rs 310.00, the receipt says Rs 300.00.
+    const id = await saveReceipt(draft({ items: [item('COLGATE TP JR MENTH', 12000, 'personal'), item('PERETTE VANILLE 250', 19000, 'groceries', 'shop')] }));
+    const receipt = (await db.receipts.get(id))!;
+    expect(receipt).toMatchObject({ itemized: true, total: 30000 });
+    expect(await db.items.where('receiptId').equals(id).count()).toBe(2);
+    expect(receipt.split.reduce((sum, s) => sum + s.amount, 0)).toBe(30000);
   });
 });
 

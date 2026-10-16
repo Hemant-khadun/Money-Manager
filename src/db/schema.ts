@@ -51,7 +51,7 @@ export interface Receipt {
   paymentMethod: PaymentMethod | null;
   vatTotal: number | null;
   discountTotal: number | null;
-  /** Its items are kept (they added up to the total). */
+  /** Its items are kept. (Before 2026-10-16, only when they added up to the total.) */
   itemized: boolean;
   source: 'scan' | 'manual';
   note: string;

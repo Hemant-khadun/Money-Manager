@@ -43,7 +43,7 @@ export interface ReceiptDraft {
   vatTotal: number | null;
   discountTotal: number | null;
   categoryId: string;
-  /** Everything read; only saved when they add up to the total. */
+  /** As checked by the person; they may not add up to the total (the receipt then says so). */
   items: DraftItem[];
   source: 'scan' | 'manual';
   note: string;
