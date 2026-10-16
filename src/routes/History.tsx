@@ -10,7 +10,7 @@ import { deleteReceipts, restoreReceipts } from '../db/receipts';
 import type { Receipt } from '../db/schema';
 import { useAllReceipts, useCategories } from '../hooks/data';
 import { formatDayMonth, formatMoney } from '../lib/format';
-import { monthName } from '../kpi/monthly';
+import { monthName, todayIso } from '../kpi/monthly';
 
 // Every receipt, newest first, a section per month with its total. Tap one to see it, change it
 // or delete it; "Select" deletes several at once.
@@ -51,6 +51,7 @@ export function History() {
     return [...byMonth];
   }, [receipts, categories, query]);
 
+  const today = todayIso();
   const shownIds = months.flatMap(([, list]) => list.map((r) => r.id!));
   // Only receipts on screen are deleted, even if the search changed after they were chosen.
   const picked = chosen ? shownIds.filter((id) => chosen.has(id)) : [];
@@ -120,7 +121,16 @@ export function History() {
           {list.map((r) => {
             const icon = <CategoryIcon icon={categoryIcon(mainCategory(r), categories)} />;
             const title = r.storeName || categoryName(mainCategory(r), categories);
-            const subtitle = `${formatDayMonth(r.date)} · ${r.split.length > 1 ? `${r.split.length} categories` : categoryName(mainCategory(r), categories)}`;
+            const said = `${formatDayMonth(r.date)} · ${r.split.length > 1 ? `${r.split.length} categories` : categoryName(mainCategory(r), categories)}`;
+            // Saved before dates in the future were caught: it doesn't show on Overview until fixed.
+            const subtitle =
+              r.date > today ? (
+                <>
+                  {said} · <span className="font-medium text-warn">Check the date</span>
+                </>
+              ) : (
+                said
+              );
             if (chosen) {
               const on = chosen.has(r.id!);
               return (

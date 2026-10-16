@@ -7,7 +7,7 @@ import { Button, FieldRow, Group, Segmented, inputClass } from '../components/pr
 import { OTHER } from '../db/categories';
 import { saveReceipt } from '../db/receipts';
 import { useCategories, useStores } from '../hooks/data';
-import { monthName, todayIso } from '../kpi/monthly';
+import { FUTURE_DATE, monthName, todayIso } from '../kpi/monthly';
 import { matchStore } from '../parser/store-match';
 import { parseMoneyInput } from '../parser/money';
 import type { PaymentMethod } from '../parser/types';
@@ -55,6 +55,7 @@ export function AddExpenseSheet() {
 
   async function save() {
     if (!cents || cents <= 0) return;
+    if (date > todayIso()) return toast(FUTURE_DATE, undefined, 'problem');
     setBusy(true);
     try {
       const saved = await safely("Couldn't add this expense", () =>

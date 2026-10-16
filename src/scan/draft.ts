@@ -6,6 +6,17 @@ import type { ParsedReceipt } from '../parser/types';
 // From what the reader found on a receipt to a draft the person checks before saving.
 
 /**
+ * The date a scanned receipt starts with, and a note when it needs checking. A date in the future
+ * is a misreading (and would put the receipt in a month Overview can't show): today is filled in.
+ * One from long ago is kept, as it may be an old receipt.
+ */
+export function dateFromScan(parsed: Pick<ParsedReceipt, 'date' | 'warnings'>, today: string): { date: string; note: string | null } {
+  if (!parsed.date || parsed.date > today) return { date: today, note: "Couldn't read the date: check it." };
+  if (parsed.warnings.includes('date-implausible')) return { date: parsed.date, note: 'This date looks wrong: check it.' };
+  return { date: parsed.date, note: null };
+}
+
+/**
  * The draft for a scanned receipt: the known shop (by VAT number or name) and its category, or a
  * guess for a new shop; every item read put in a category. The person corrects the items on the
  * review screen, where they see whether they add up to the total; they are saved as shown there.
@@ -19,7 +30,7 @@ export async function draftFromScan(parsed: ParsedReceipt, today: string): Promi
     storeId: store?.id ?? null,
     storeName: store?.name ?? parsed.storeName ?? '',
     taxId: parsed.taxId,
-    date: parsed.date ?? today,
+    date: dateFromScan(parsed, today).date,
     total: parsed.total ?? 0,
     paymentMethod: parsed.paymentMethod,
     vatTotal: parsed.vatTotal,

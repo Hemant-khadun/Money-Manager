@@ -13,6 +13,9 @@ export function todayIso(now = new Date()): string {
   return `${monthOf(now)}-${String(now.getDate()).padStart(2, '0')}`;
 }
 
+/** Said when a date can't be saved: a receipt is never from the future (Overview couldn't show it). */
+export const FUTURE_DATE = 'That date is in the future: check it.';
+
 /** "2026-10" moved by `delta` months. */
 export function shiftMonth(month: string, delta: number): string {
   const [y, m] = month.split('-').map(Number);

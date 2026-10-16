@@ -18,6 +18,7 @@ import { parseMoneyInput } from '../parser/money';
 import type { PaymentMethod } from '../parser/types';
 import { PAYMENT_OPTIONS } from './AddExpenseSheet';
 import type { ItemFields } from '../scan/draft';
+import { FUTURE_DATE, todayIso } from '../kpi/monthly';
 import { ItemSheet } from './ItemSheet';
 
 // One saved receipt, in full: everything it holds, its items grouped by category, and everything
@@ -222,6 +223,11 @@ export function ReceiptDetail() {
     if (deleted) toast(`${item.kind === 'discount' ? 'Discount' : 'Item'} deleted`, { label: 'Undo', run: () => void safely("Couldn't bring it back", () => restoreItems(deleted)) });
   }
 
+  function changeDate(date: string) {
+    if (date > todayIso()) return toast(FUTURE_DATE, undefined, 'problem');
+    change({ date });
+  }
+
   function saveTotal() {
     const cents = parseMoneyInput(total);
     if (cents && cents > 0 && cents !== receipt!.total) change({ total: cents });
@@ -253,7 +259,7 @@ export function ReceiptDetail() {
           <input id="r-total" inputMode="decimal" value={total} onChange={(e) => setTotal(e.target.value)} onBlur={saveTotal} className={inputClass} />
         </FieldRow>
         <FieldRow label="Date" htmlFor="r-date">
-          <input id="r-date" type="date" value={receipt.date} onChange={(e) => e.target.value && change({ date: e.target.value })} className={inputClass} />
+          <input id="r-date" type="date" value={receipt.date} max={todayIso()} onChange={(e) => e.target.value && changeDate(e.target.value)} className={inputClass} />
         </FieldRow>
         <FieldRow label="Category">
           <div className="flex items-center justify-end gap-2 py-1.5">

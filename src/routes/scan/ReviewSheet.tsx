@@ -13,10 +13,10 @@ import { photosInOrder, type ReadScan } from '../../hooks/useReceiptReader';
 import { centsToInput, formatMoney } from '../../lib/format';
 import { askToKeepData } from '../../lib/storage';
 import { makeThumbnail } from '../../lib/thumbnail';
-import { monthName, todayIso } from '../../kpi/monthly';
+import { FUTURE_DATE, monthName, todayIso } from '../../kpi/monthly';
 import { parseMoneyInput } from '../../parser/money';
 import type { PaymentMethod } from '../../parser/types';
-import { draftFromScan, withItem, withItemCategory, withMainCategory, withoutItem } from '../../scan/draft';
+import { dateFromScan, draftFromScan, withItem, withItemCategory, withMainCategory, withoutItem } from '../../scan/draft';
 import { joinNotes, looksCutOff } from '../../scan/notes';
 import { PAYMENT_OPTIONS } from '../AddExpenseSheet';
 import { ItemSheet } from '../ItemSheet';
@@ -222,13 +222,15 @@ export function ReviewSheet({ scan, onClose, onSaved, onAddPhotos, onSplit, onRe
     // A receipt that seems cut off says so on its own, with a way to take the rest of it.
     if (!cutOff && parsed.total === null) notes.push("Couldn't find the total: type it in.");
     else if (!cutOff && parsed.totalConfidence === 'low') notes.push('Check the total: it was hard to find on this receipt.');
-    if (!parsed.date) notes.push("Couldn't find the date: check it.");
+    const dateNote = dateFromScan(parsed, todayIso()).note;
+    if (dateNote) notes.push(dateNote);
     if (!parsed.storeName) notes.push("Couldn't find the shop's name: type it in.");
   }
   if (scan) notes.push(...joinNotes(scan));
 
   async function save() {
     if (!scan || !draft || !total || total <= 0) return;
+    if (draft.date > todayIso()) return toast(FUTURE_DATE, undefined, 'problem');
     setBusy(true);
     try {
       const top = photosInOrder(scan)[0];
@@ -326,7 +328,7 @@ export function ReviewSheet({ scan, onClose, onSaved, onAddPhotos, onSplit, onRe
               <input id="review-total" inputMode="decimal" value={totalText} placeholder="0.00" onChange={(e) => setTotalText(e.target.value)} className={`${inputClass} font-semibold`} />
             </FieldRow>
             <FieldRow label="Date" htmlFor="review-date">
-              <input id="review-date" type="date" value={draft.date} onChange={(e) => e.target.value && setDraft({ ...draft, date: e.target.value })} className={inputClass} />
+              <input id="review-date" type="date" value={draft.date} max={todayIso()} onChange={(e) => e.target.value && setDraft({ ...draft, date: e.target.value })} className={inputClass} />
             </FieldRow>
             <FieldRow label="Category">
               <div className="flex items-center justify-end gap-2 py-1.5">
