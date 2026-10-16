@@ -1,6 +1,6 @@
 import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { exportBackup, restoreBackup } from '../src/db/backup';
+import { LAST_BACKUP, backupDue, exportBackup, getSetting, readBackup, restoreBackup, restoreQuestion, undoRestore } from '../src/db/backup';
 import {
   deleteItem,
   deleteReceipt,
@@ -208,7 +208,7 @@ describe('backup', () => {
     await saveReceipt(draft(), { thumb: new Blob(['jpeg-bytes'], { type: 'image/jpeg' }) });
     const backup = JSON.parse(JSON.stringify(await exportBackup()));
     await Promise.all(db.tables.map((t) => t.clear()));
-    expect(await restoreBackup(backup)).toEqual({ receipts: 1 });
+    expect(await restoreBackup(backup)).toMatchObject({ receipts: 1 });
     expect(await db.receipts.count()).toBe(1);
     expect(await db.categories.count()).toBeGreaterThan(10);
     const thumb = (await db.thumbs.toArray())[0];
@@ -217,5 +217,50 @@ describe('backup', () => {
 
   it('refuses a file that is not a backup, in plain words', async () => {
     await expect(restoreBackup({ hello: 1 })).rejects.toThrow("This file isn't a Money Manager backup.");
+  });
+
+  it('says what is in the file and on the phone before replacing', async () => {
+    await saveReceipt(draft());
+    const backup = readBackup(JSON.parse(JSON.stringify({ ...(await exportBackup()), exportedAt: '2026-09-12T08:00:00.000Z' })));
+    expect(restoreQuestion(backup, 120)).toBe('This backup is from 12 Sept 2026, with 1 receipt. This phone has 120. Replace them?');
+    expect(restoreQuestion(backup, 0)).toBe('This backup is from 12 Sept 2026, with 1 receipt. Restore it?');
+  });
+
+  it('can undo a restore: everything on the phone comes back as it was', async () => {
+    await saveReceipt(draft({ storeName: 'Winners' }));
+    const older = JSON.parse(JSON.stringify(await exportBackup()));
+    await saveReceipt(draft({ storeName: 'Intermart' }), { thumb: new Blob(['jpeg-bytes'], { type: 'image/jpeg' }) });
+    await saveReceipt(draft({ storeName: 'Jumbo' }));
+
+    const { receipts, before } = await restoreBackup(older);
+    expect(receipts).toBe(1);
+    expect((await db.receipts.toArray()).map((r) => r.storeName)).toEqual(['Winners']);
+    // The phone now holds that backup: it counts as backed up then.
+    expect(await getSetting(LAST_BACKUP)).toBe(older.exportedAt);
+
+    await undoRestore(before);
+    expect((await db.receipts.toArray()).map((r) => r.storeName)).toEqual(['Winners', 'Intermart', 'Jumbo']);
+    expect(await db.items.count()).toBe(before.items.length);
+    expect(await (await db.thumbs.toArray())[0].image.text()).toBe('jpeg-bytes');
+    expect(await getSetting(LAST_BACKUP)).toBeUndefined();
+  });
+});
+
+describe('backupDue', () => {
+  const now = Date.parse('2026-10-16T12:00:00Z');
+  const day = 86_400_000;
+
+  it('stays quiet with no receipts', () => {
+    expect(backupDue({ now, lastBackupAt: undefined, firstReceiptAt: undefined })).toBe(false);
+  });
+
+  it('reminds when the last backup is over 30 days old', () => {
+    expect(backupDue({ now, lastBackupAt: new Date(now - 29 * day).toISOString(), firstReceiptAt: now - 90 * day })).toBe(false);
+    expect(backupDue({ now, lastBackupAt: new Date(now - 31 * day).toISOString(), firstReceiptAt: now - 90 * day })).toBe(true);
+  });
+
+  it('never backed up: reminds a week after the first receipt', () => {
+    expect(backupDue({ now, lastBackupAt: undefined, firstReceiptAt: now - 6 * day })).toBe(false);
+    expect(backupDue({ now, lastBackupAt: undefined, firstReceiptAt: now - 8 * day })).toBe(true);
   });
 });

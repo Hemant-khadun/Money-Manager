@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router';
-import { CalendarDays, ChevronLeft, ChevronRight, Leaf, ReceiptText, ScanLine, Settings, Trophy, type LucideIcon } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, CloudUpload, Leaf, ReceiptText, ScanLine, Settings, Trophy, type LucideIcon } from 'lucide-react';
 import { lazy, Suspense, useMemo, type ReactNode } from 'react';
 import { useApp } from '../app/AppContext';
 import { categoryName } from '../components/CategoryPicker';
@@ -10,6 +10,7 @@ import { Page } from '../components/Page';
 import { Button, ChangeBadge, EmptyState, IconButton, buttonBase, buttonKinds, rise } from '../components/primitives';
 import type { Receipt } from '../db/schema';
 import { useCategories, useReceiptCount, useReceiptsBetween } from '../hooks/data';
+import { useBackUp, useBackupDue, useLastBackup } from '../hooks/useBackUp';
 import { formatMoney, formatShortDate, formatWholeMoney } from '../lib/format';
 import {
   daysSoFar,
@@ -111,6 +112,8 @@ export function Overview() {
         </div>
       </section>
 
+      <BackupReminder />
+
       {data && s && (s.total > 0 || s.previousTotal > 0) && (
         <div {...enter('mt-6')}>
           <PaceChart month={month} current={data.current} previous={data.previous} upTo={data.days} projected={s.projected} />
@@ -169,6 +172,32 @@ export function Delta({ now, before, beforeName, sameTime = false }: { now: numb
     <ChangeBadge up={change > 0}>
       {pct}% {change > 0 ? 'more' : 'less'} than {than}
     </ChangeBadge>
+  );
+}
+
+/** Shown when the last backup is over 30 days old, or there was never one (docs/PLAN.md §10). */
+function BackupReminder() {
+  const due = useBackupDue();
+  const last = useLastBackup();
+  const backUp = useBackUp();
+  if (!due || last === undefined) return null;
+  const days = last ? Math.floor((Date.now() - Date.parse(last)) / 86_400_000) : 0;
+  return (
+    <section className="panel mt-5 flex gap-3 p-4" aria-label="Back up your receipts">
+      <span aria-hidden className="grid size-9 shrink-0 place-items-center rounded-xl bg-primary/12 text-primary">
+        <CloudUpload className="size-5" strokeWidth={2} />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-subhead font-semibold">Time to back up</p>
+        <p className="mt-0.5 text-footnote text-muted-foreground">
+          {last ? `Your last backup was ${days} days ago.` : "You haven't backed up yet."} Your receipts are only on this phone: a backup keeps them safe if it's lost
+          or replaced.
+        </p>
+        <Button className="mt-3 w-fit" onClick={() => void backUp()}>
+          Back up now
+        </Button>
+      </div>
+    </section>
   );
 }
 

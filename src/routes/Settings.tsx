@@ -1,14 +1,14 @@
-import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useState } from 'react';
 import { applyTheme, savedTheme, type ThemeChoice } from '../app/theme';
 import { CategoryIcon } from '../components/CategoryIcon';
 import { Page } from '../components/Page';
 import { useSafely, useToast } from '../components/Toast';
 import { Group, Row, Segmented } from '../components/primitives';
-import { BackupError, exportBackup, getSetting, restoreBackup, setSetting } from '../db/backup';
+import { BackupError, readBackup, receiptsOnPhone, restoreBackup, restoreQuestion, undoRestore, type Backup } from '../db/backup';
 import { setBudget } from '../db/receipts';
 import type { Category } from '../db/schema';
 import { useCategories } from '../hooks/data';
+import { useBackUp, useLastBackup } from '../hooks/useBackUp';
 import { centsToInput, formatDate } from '../lib/format';
 import { isDataKept } from '../lib/storage';
 import { parseMoneyInput } from '../parser/money';
@@ -50,27 +50,12 @@ function BudgetRow({ category }: { category: Category }) {
   );
 }
 
-async function shareOrDownload(file: File): Promise<void> {
-  if (navigator.canShare?.({ files: [file] })) {
-    try {
-      await navigator.share({ files: [file], title: 'Money Manager backup' });
-      return;
-    } catch (err) {
-      if ((err as Error).name === 'AbortError') throw err;
-    }
-  }
-  const url = URL.createObjectURL(file);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = file.name;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-
 export function Settings() {
   const categories = useCategories() ?? [];
-  const lastBackup = useLiveQuery(() => getSetting<string>('lastBackupAt'), []);
+  const lastBackup = useLastBackup();
+  const backUp = useBackUp();
   const toast = useToast();
+  const safely = useSafely();
   const [theme, setTheme] = useState<ThemeChoice>(savedTheme);
   const [kept, setKept] = useState<boolean | null>(null);
 
@@ -78,29 +63,22 @@ export function Settings() {
     void isDataKept().then(setKept);
   }, []);
 
-  async function backUp() {
-    const backup = await exportBackup();
-    const day = backup.exportedAt.slice(0, 10);
-    const file = new File([JSON.stringify(backup)], `money-manager-backup-${day}.json`, { type: 'application/json' });
-    try {
-      await shareOrDownload(file);
-      await setSetting('lastBackupAt', backup.exportedAt);
-      toast(`Backed up ${backup.receipts.length} receipts`);
-    } catch {
-      // Cancelled.
-    }
-  }
-
+  /** Says what's in the file and on the phone before replacing; what was on the phone can be brought back. */
   async function restore(files: FileList | null) {
     const file = files?.[0];
     if (!file) return;
-    if (!window.confirm('Restoring replaces everything on this phone with what is in the backup. Continue?')) return;
+    let backup: Backup;
     try {
-      const { receipts } = await restoreBackup(JSON.parse(await file.text()));
-      toast(`Restored ${receipts} receipts`);
+      backup = readBackup(JSON.parse(await file.text()));
     } catch (err) {
-      toast(err instanceof BackupError ? err.message : "That file couldn't be read as a backup.");
+      toast(err instanceof BackupError ? err.message : "That file couldn't be read as a backup.", undefined, 'problem');
+      return;
     }
+    if (!window.confirm(restoreQuestion(backup, await receiptsOnPhone()))) return;
+    const restored = await safely("Couldn't restore the backup. Nothing on this phone was changed", () => restoreBackup(backup));
+    if (!restored.ok) return;
+    const { receipts, before } = restored.value;
+    toast(`Restored ${receipts} receipt${receipts === 1 ? '' : 's'}`, { label: 'Undo', run: () => void safely("Couldn't undo the restore", () => undoRestore(before)) });
   }
 
   return (
@@ -131,7 +109,7 @@ export function Settings() {
         title="Your data"
         footer="Your receipts are kept only on this phone and never sent anywhere. Back up now and then (to Drive, email or files), so you can restore them on a new phone."
       >
-        <Row onClick={backUp} title={<span className="text-primary">Back up now</span>} subtitle={lastBackup ? `Last backup ${formatDate(lastBackup.slice(0, 10))}` : 'Not backed up yet'} />
+        <Row onClick={() => void backUp()} title={<span className="text-primary">Back up now</span>} subtitle={lastBackup ? `Last backup ${formatDate(lastBackup.slice(0, 10))}` : 'Not backed up yet'} />
         <label className="group/row block cursor-pointer pl-4 hover:bg-muted/50 active:bg-muted">
           <span className="flex min-h-14 items-center border-b border-border py-3 pr-4 text-body font-medium text-primary group-last/row:border-b-0">Restore from a backup…</span>
           <input
