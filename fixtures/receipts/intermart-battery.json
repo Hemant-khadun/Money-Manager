@@ -1,6 +1,7 @@
 {
   "version": 1,
   "name": "intermart-battery",
+  "note": "Bought 2026-10-07; the till printed 07/10/2025. Expected is what is printed: the Check screen points the old date out.",
   "capturedAt": "2026-10-16",
   "ocr": {
     "strategy": "per-box",

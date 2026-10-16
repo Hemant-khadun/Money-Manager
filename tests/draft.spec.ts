@@ -18,6 +18,13 @@ describe('dateFromScan', () => {
     expect(dateFromScan({ date: '2021-05-02', warnings: ['date-implausible'] }, TODAY)).toEqual({ date: '2021-05-02', note: 'This date looks wrong: check it.' });
   });
 
+  it('points out a date months back (some tills print the wrong year), keeping it', () => {
+    // A real Intermart receipt from 7 October 2026 printed 07/10/2025.
+    expect(dateFromScan({ date: '2025-10-07', warnings: [] }, TODAY)).toEqual({ date: '2025-10-07', note: "This receipt says October 2025. If it's recent, change the date." });
+    expect(dateFromScan({ date: '2026-07-01', warnings: [] }, TODAY)).toEqual({ date: '2026-07-01', note: "This receipt says July. If it's recent, change the date." });
+    expect(dateFromScan({ date: '2026-08-20', warnings: [] }, TODAY).note).toBeNull();
+  });
+
   it('fills in today when no date was found', () => {
     expect(dateFromScan({ date: null, warnings: ['no-date'] }, TODAY)).toEqual({ date: TODAY, note: "Couldn't read the date: check it." });
   });

@@ -1,18 +1,27 @@
 import { categorizeItem, guessShopCategory } from '../categorize/categorize';
 import { findStore, type DraftItem, type ReceiptDraft } from '../db/receipts';
 import { db } from '../db/schema';
+import { monthName } from '../kpi/monthly';
+import { daysBetween } from '../parser/dates';
 import type { ParsedReceipt } from '../parser/types';
 
 // From what the reader found on a receipt to a draft the person checks before saving.
 
+/** A receipt dated further back than this is likely a misread or misprinted year, so the date is to be checked. */
+const OLD_AFTER_DAYS = 60;
+
 /**
  * The date a scanned receipt starts with, and a note when it needs checking. A date in the future
  * is a misreading (and would put the receipt in a month Overview can't show): today is filled in.
- * One from long ago is kept, as it may be an old receipt.
+ * One from long ago is kept, as it may be an old receipt; but receipts are mostly scanned soon
+ * after shopping, and some tills print the wrong year, so a date months back is pointed out.
  */
 export function dateFromScan(parsed: Pick<ParsedReceipt, 'date' | 'warnings'>, today: string): { date: string; note: string | null } {
   if (!parsed.date || parsed.date > today) return { date: today, note: "Couldn't read the date: check it." };
   if (parsed.warnings.includes('date-implausible')) return { date: parsed.date, note: 'This date looks wrong: check it.' };
+  if (daysBetween(parsed.date, today) > OLD_AFTER_DAYS) {
+    return { date: parsed.date, note: `This receipt says ${monthName(parsed.date.slice(0, 7), Number(today.slice(0, 4)))}. If it's recent, change the date.` };
+  }
   return { date: parsed.date, note: null };
 }
 
