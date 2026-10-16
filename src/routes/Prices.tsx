@@ -48,7 +48,7 @@ export function Prices() {
   if (data && data.itemized === 0) {
     return (
       <Page title="Prices" back="Overview">
-        <EmptyState title="No prices yet" icon={Tags}>Scan a receipt whose items can be read, and what you paid for each thing shows up here.</EmptyState>
+        <EmptyState title="No prices yet" icon={Tags}>Scan a receipt whose items can be read and add up to its total, and what you paid for each thing shows up here.</EmptyState>
       </Page>
     );
   }
@@ -75,7 +75,7 @@ export function Prices() {
       {shown.length > 0 && (
         <Group
           title={searching ? `Matching "${query.trim()}"` : heading(filter, shown.length)}
-          footer={data && `Based on ${data.itemized} of ${data.receipts} receipts: the ones whose items could be read. Prices are for one, or for a kg, before discounts.`}
+          footer={data && `Based on ${data.itemized} of ${data.receipts} receipts: the ones whose items add up to their total. Prices are for one, or for a kg, before discounts.`}
         >
           {shown.map((c) => (
             <PriceRow key={c.product.keys[0]} change={c} />

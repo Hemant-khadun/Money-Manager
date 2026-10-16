@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { productKey } from '../src/categorize/categorize';
 import type { LineItem, Receipt } from '../src/db/schema';
+import { receiptsAddingUp } from '../src/kpi/adds-up';
 import { filterChanges, priceChange, priceChanges, productPrices } from '../src/kpi/prices';
 
 const receipts: Receipt[] = [];
 const items: LineItem[] = [];
 
-function receipt(date: string, storeName: string, lines: Array<[name: string, unitPrice: number, qty?: number]>): void {
+/** A receipt whose total is what its items come to, unless `total` says otherwise (a misread). */
+function receipt(date: string, storeName: string, lines: Array<[name: string, unitPrice: number, qty?: number]>, total?: number): number {
   const id = receipts.length + 1;
   receipts.push({
     id,
@@ -15,7 +17,7 @@ function receipt(date: string, storeName: string, lines: Array<[name: string, un
     storeId: null,
     storeName,
     categoryId: 'groceries',
-    total: 0,
+    total: total ?? lines.reduce((sum, [, unitPrice, qty = 1]) => sum + Math.round(unitPrice * qty), 0),
     paymentMethod: 'card',
     vatTotal: null,
     discountTotal: null,
@@ -41,6 +43,7 @@ function receipt(date: string, storeName: string, lines: Array<[name: string, un
       vatCode: null,
     });
   }
+  return id;
 }
 
 receipt('2026-08-30', 'Intermart', [
@@ -129,5 +132,25 @@ describe('filterChanges', () => {
 
   it('only counts products bought in the month when given one', () => {
     expect(priceChanges(products, '2026-09').map((c) => c.product.name).sort()).toEqual(['BANANES', 'KETCHUP HEINZ TOP DOWN 500G', 'LAIT UHT 1L', 'TOMATO SCE HEINZ 500G']);
+  });
+});
+
+describe('receipts whose items do not add up', () => {
+  it('are not compared until a misread price is fixed', () => {
+    const before = receipts.length;
+    // 45.00 read as 145.00: the items come to Rs 1,450, the receipt says Rs 450.
+    const id = receipt('2026-10-10', 'Winners', [['TOMATO SCE HEINZ 500G', 14500], ['RIZ BASMATI 1KG', 30500]], 35000);
+    try {
+      expect(receiptsAddingUp(items, receipts).has(id)).toBe(false);
+      expect(priceChange(productPrices(items, receipts).find((p) => p.name.startsWith('TOMATO'))!)).toMatchObject({ latest: { price: 5200 } });
+
+      const misread = items.find((i) => i.receiptId === id && i.name.startsWith('TOMATO'))!;
+      Object.assign(misread, { unitPrice: 4500, lineTotal: 4500 });
+      expect(receiptsAddingUp(items, receipts).has(id)).toBe(true);
+      expect(priceChange(productPrices(items, receipts).find((p) => p.name.startsWith('TOMATO'))!)).toMatchObject({ latest: { price: 4500, receiptId: id } });
+    } finally {
+      receipts.splice(before);
+      items.splice(items.findIndex((i) => i.receiptId === id));
+    }
   });
 });

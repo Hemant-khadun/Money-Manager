@@ -22,14 +22,6 @@ export interface DraftItem {
   unclear?: boolean;
 }
 
-/** Items and a total that differ by no more than this (cents) add up: Rs 1, as when a receipt is read (parser/items). */
-export const ADDS_UP = 100;
-
-/** Whether a receipt's items (discounts included) come to its total. */
-export function itemsAddUp(items: ReadonlyArray<{ lineTotal: number }>, total: number): boolean {
-  return items.length > 0 && Math.abs(items.reduce((sum, i) => sum + i.lineTotal, 0) - total) <= ADDS_UP;
-}
-
 /** A receipt as checked on the review screen (or typed in), ready to save. */
 export interface ReceiptDraft {
   /** The known shop it was matched to, if any. */

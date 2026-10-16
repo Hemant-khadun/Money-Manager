@@ -347,7 +347,7 @@ npx shadcn@latest add "https://21st.dev/r/<author>/<component>"
 - **Managing saved receipts:** every detail of a saved receipt changes in place (saved straight away); each item can be corrected (name, how many, price, category) or deleted, and once items no longer add up to the total the receipt says so, with "Make the total …". History has "Select" to delete several receipts at once. Every delete has Undo.
 - **Checking items before saving:** the review screen shows every item read, even when they don't add up, each with a pencil to correct it (name, how many, price, category) or take it off, and "Add a missing item". Lines the reader was unsure of (confidence below 0.85, as for its closer looks) are marked "Check". The items are saved as shown, whether or not they come to the total (±Rs 1): dropping items the person had just seen lost them (the user's call, 2026-10-16). When they don't add up, the review screen and the saved receipt both say what they come to, with "Make the total …" (on the review screen, unless the receipt seems cut off). The total always stays as confirmed, so monthly totals are unaffected.
 - **Joining a long receipt's photos:** a shared line with the same price but a word lost or misread counts as a partial match (`PARTIAL` in `src/pipeline/stitch.ts`): it helps a join along but never on its own decides that two photos belong together. A receipt taken right after one that seems cut off, and not joined to it by itself, asks "Is this the rest of the receipt below?" (`joinInto`).
-- **Receipts:** any store, no per-store setup. Always save the essentials (store, date, total, category, payment method). Save items only when they add up to the total. Keep a ~30 KB thumbnail of the photo. Discard everything else after review.
+- **Receipts:** any store, no per-store setup. Always save the essentials (store, date, total, category, payment method). Save items as checked, even when they don't add up (2026-10-16); price changes only use receipts whose items do. Keep a ~30 KB thumbnail of the photo. Discard everything else after review.
 - **AI engine:** local-first (PP-OCRv5 + parser). Cloud Claude only when you tap the button for a receipt that failed (§2b).
 - **Users/devices:** one person per phone. You, colleagues and friends all use the same public website, and **each person's data stays only on their own phone**. Nobody can see anyone else's receipts, and no accounts or backend are needed. All data lives in the phone's IndexedDB, so:
   - `navigator.storage.persist()` on first run, and install as a PWA (protects against iOS storage clean-up)
@@ -413,3 +413,64 @@ receipt-tracker/
 **Redesign (2026-10-11):** new look (§7b): shadcn-named colour tokens with an indigo accent, cards, odometer hero figure, a day-by-day "this month against last month" chart with month-end pace, 2×2 stat tiles, sideways price cards, tinted category icons, receipt items laid out as torn paper, a new Scan screen. Mid-month, the change badge now compares with the same day of last month. Set up for adding 21st.dev/shadcn components (`components.json`, `@/` path, `cn()`). Checked in headless Chrome at phone size in light and dark; app-shell JS 148.7 KB gzip.
 
 **Not yet:** Excel export (Phase 4); PWA icons, install prompt, update toast and GitHub Pages deploy (Phase 5); cloud fallback (Phase 2b); personal inflation (basket index); joining one product's different names by hand; editing category names; backup reminder after 30 days; Phase 0 accuracy measurement on 30+ real receipts.
+
+## 14. Fixes and improvements (review of 2026-10-16)
+A review of the whole app (208 tests passing, type check clean) found gaps that can lose receipts or show wrong numbers, and a few promises the app doesn't keep yet. The order: first finish the change in progress safely, then protect people's data and numbers, then offline use (which needs step 2a first, see step 4), then the rest. Step 6 is the one only you can do, and can start now, alongside the others. Every step ends with tests; the whole list is checked on real phones at the end.
+
+### Step 1. Finish "save every item" safely, before committing it (small)
+- **Problem:** price comparisons (`productPrices` in `src/kpi/prices.ts`) use every saved item. "The items add up to the total" was their only guard against misread prices. Now that items are saved even when they don't add up, one misread price (45.00 read as 145.00) shows on Overview as "costs 222% more".
+- **Change:** `productPrices` leaves out receipts whose items don't come to their total, worked out when it runs, so a receipt counts again as soon as it is fixed. `itemsAddUp` moves out of `src/db/receipts.ts` into a file with no database code, so the price code stays pure. The "based on X of Y receipts" count in `usePrices` (`src/hooks/data.ts`) counts the same receipts. The §10 "Receipts" line ("Save items only when they add up") is updated to match the 2026-10-16 decision above it. Then commit.
+- **Check:** `tests/prices.spec.ts`: a receipt with one misread price isn't compared; once its price is fixed, it is.
+
+### Step 2. Never lose a receipt (the biggest step)
+**2a. Keep photos until the receipt is saved.**
+- **Problem:** receipts being read or waiting to be checked live only in memory (`src/hooks/useReceiptReader.ts`). When the phone closes the page, which the app expects on iPhones (`src/pipeline/care.ts`), every unsaved photo is lost, and photos taken with the app's camera button usually aren't in the gallery. The message then asks to "add the photo again".
+- **Change:** a new `pending` table (`db.version(2)`, only adding): each unsaved receipt with its photos (Blobs) and, once read, its readings. Written whenever photos are added, joined, split or taken out; deleted when the receipt is saved, or thrown away and its Undo has run out. At start-up the reader loads them back; receipts already read go straight to "Ready to check" without reading the photos again (their readings fill the reader's cache), the rest are read again. Photo ids carry on from the highest one loaded. The "had to start again" message says the photos are back. Readings are still never kept with a saved receipt (§3); they are held only until the receipt is saved or thrown away. Backup leaves this table out, and restore doesn't clear it.
+- **Check:** tests for saving, loading and deleting pending receipts (fake-indexeddb). On a phone: take two photos, close the app while it reads, open it again: both are there.
+
+**2b. Say when saving fails.**
+- **Problem:** saving a checked receipt or an added expense has no error handling (`ReviewSheet.tsx`, `AddExpenseSheet.tsx`), changes on a saved receipt are fire-and-forget (`void updateReceipt(...)` in `ReceiptDetail.tsx`), and every message shows a green tick, even "That file couldn't be read as a backup".
+- **Change:** the toast gets a "problem" look (warning icon in the `bad` colour, shown longer). Every save, change, delete and restore goes through one small helper that catches the error, writes it to the problem report (`debugLog` + `describeError`) and says so in plain words: "Couldn't save this receipt. Your phone may be out of space."
+- **Check:** the helper has its own test; the problem look is checked in light and dark.
+
+**2c. Make the backup safe.**
+- **Problem:** restore wipes everything first (`src/db/backup.ts`), so choosing last month's file by mistake erases a month. The 30-day reminder (§10) was never built.
+- **Change:** before replacing, the question says what's in the file and on the phone: "This backup is from 12 September, with 84 receipts. This phone has 120. Replace them?" The phone's data is copied to memory first, and "Restored 84 receipts" has Undo. The reminder: a card on Overview when there are receipts and the last backup is over 30 days old (or there was never one, a week after the first receipt), with "Back up now". The backup code moves out of `Settings.tsx` so both places use it.
+- **Check:** restore + Undo round trip in `tests/db.spec.ts`; when the reminder shows, as a tested function.
+
+### Step 3. Right numbers (small to medium)
+**3a. Dates that can't be right.**
+- **Problem:** when no believable date is found, `findDate` (`src/parser/essentials.ts`) still fills in an unbelievable one (in the future, or over 3 years ago), and the review screen only warns when there's no date at all. A future date puts the receipt in a month Overview can't reach ("next month" stops at this month), so it drops out of the dashboard.
+- **Change:** the review screen shows "This date looks wrong: check it" for `date-implausible`. A future date isn't filled in: today is, with "Couldn't read the date: check it". The review and receipt-detail date fields get `max` set to today, like Add expense, and saving refuses a future date. Receipts already saved with a future date get a "Check the date" mark in History.
+- **Check:** a new `tests/draft.spec.ts`: a future date becomes today, with the note; an old one is kept, with the note.
+
+**3b. The same receipt saved twice.**
+- **Problem:** nothing checks for duplicates; the same photo chosen twice counts twice.
+- **Change:** `findDuplicate(draft)` in `src/db/receipts.ts` looks for a saved receipt with the same date and total (and the same shop, when known), using the `date` index. The review screen then says "You already saved this receipt (Winners, 12 Oct, Rs 1,234)" with "See it", and the button reads "Save it again". Add expense does the same. On the Scan list, two receipts with the same shop, date and total are marked "Same as another receipt in this list".
+- **Check:** tests in `tests/db.spec.ts`.
+
+### Step 4. Offline use and updates (medium; after 2a)
+- **Problem:** the build makes the service worker, but `vite.config.ts` sets `injectRegister: false` and nothing registers it, so it never runs: no offline use, the reader (~13 MB of models plus a ~28 MB engine) is kept only in the browser's ordinary cache, and there's no "new version" prompt.
+- **Change:** register it with `useRegisterSW` from `virtual:pwa-register/react` (its types are already in `tsconfig.json`), keeping `workbox-window` out of the start-up files. When a new version is ready, a bar says "A new version is ready" with "Reload", and stays until tapped; it waits while a receipt is being read. This comes after 2a because reloading would otherwise wipe unsaved receipts. Only the Latin Inter font files are precached (the Cyrillic, Greek and Vietnamese ones are never used). The problem report shows whether the offline helper is running.
+- **Check:** the §9 hosting check: install on a phone, scan once, switch to airplane mode, scan again; deploy a new version, see the bar, and check the data survives.
+
+### Step 5. Keep the app's promises (small each)
+- **5a. Use what's learned about each shop.** Saving learns each shop's total label and date order (`learnHints`), but the reader never uses them: `useReceiptReader.ts` calls `parseReceipt(joined.lines)` without hints. It will read once, find the shop (`findStore`, by VAT number or name), and read again with the shop's hints when it has any. This code loads with the parser, not at start-up. Test: a receipt the general rules get wrong is read right once the shop's total label is known.
+- **5b. Take the test page out of Settings.** "Receipt reading test" tells everyone to "run `npm run eval`". Its row moves from Settings to the bottom of the problem report page (`#/debug`); the `#/test` address stays.
+- **5c. Remove unused packages:** `exceljs`, `@anthropic-ai/sdk`, `motion`, `zod`, `d3-scale`, `d3-shape` and their `@types`. They come back with the Excel export (Phase 4) and the cloud fallback (Phase 2b). §7 is updated: the charts don't use d3.
+- **5d. Guard the start-up budget.** Start-up JS is ~150 KB gzip, right at the §7b limit. First trim 5–10 KB (look at what the ~96 KB main file holds), then add `scripts/check-size.mjs` to the deploy workflow after the build: it fails when the files `index.html` loads go over 150 KB gzip.
+
+### Step 6. Measure reading on real receipts (your part; start now)
+- `fixtures/receipts/` is empty, so `npm run eval` is skipped and nobody knows how often a real receipt is read right. That's the app's biggest unknown, and Phase 0's go/no-go was never run.
+- Collect 30+ receipts from as many kinds of shop as §8 lists. On a computer: `npm run dev`, open `#/test`, add a photo, correct the answers, save. Read each JSON before committing: the repo is public, so remove card digits, names and addresses. Run `npm run eval` and write the result in §13.
+- Below the gate (essentials right on 90%, items adding up on 60% of itemized receipts)? Then parser work comes before step 7 and any new feature.
+
+### Step 7. Smaller improvements (after the above)
+- History search also finds items: "nappies" finds the receipt they were on.
+- The month-end forecast starts on day 7 instead of day 3, so one big shop early in the month doesn't forecast ten times as much.
+- Categories can be renamed and added.
+- Price matching reruns over the whole history whenever a receipt changes. Test with a year of sample data (~600 receipts, ~5,000 items); if Overview takes over 100 ms on a mid-range phone, keep the product groups between runs.
+
+**Still to build from the original plan (separate from this list):** Excel export (Phase 4), cloud fallback (Phase 2b), first-run screen and install prompt (Phase 5), personal inflation, joining a product's different names by hand.
+
+**Final check, iPhone and Android:** close the app while it reads two photos, then open it again: both are back. Choose the same photo twice: warned. A receipt with a date in the future: caught. A failed save: says so. Restore an older backup, then Undo. Airplane mode: scanning still works. Deploy a new version: the bar shows, and nothing is lost.

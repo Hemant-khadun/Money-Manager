@@ -1,6 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useState } from 'react';
 import { db } from '../db/schema';
+import { receiptsAddingUp } from '../kpi/adds-up';
 import { productPrices } from '../kpi/prices';
 
 // Live views of the phone's data: screens update by themselves when a receipt is saved or changed.
@@ -38,13 +39,13 @@ export function useItemsInMonth(month: string) {
 }
 
 /**
- * Everything bought on receipts whose items were read, by product, with what it cost each time;
+ * Everything bought on receipts whose items add up, by product, with what it cost each time;
  * plus how many receipts that is out of all of them.
  */
 export function usePrices() {
   return useLiveQuery(async () => {
     const [receipts, items] = await Promise.all([db.receipts.toArray(), db.items.toArray()]);
-    return { products: productPrices(items, receipts), itemized: receipts.filter((r) => r.itemized).length, receipts: receipts.length };
+    return { products: productPrices(items, receipts), itemized: receiptsAddingUp(items, receipts).size, receipts: receipts.length };
   }, []);
 }
 

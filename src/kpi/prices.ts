@@ -1,8 +1,10 @@
 import type { LineItem, Receipt } from '../db/schema';
 import { SAME_PRODUCT, normalizeText, similarity } from '../parser/text';
+import { receiptsAddingUp } from './adds-up';
 
 // What the same product cost each time it was bought (docs/PLAN.md §5, price changes). Only
-// receipts whose items were read count. A product is recognised by its name on the receipt: the
+// receipts whose items come to their total count: one with a misread price would show a rise that
+// never happened. A product is recognised by its name on the receipt: the
 // same spelling, or one OCR read slightly differently as long as the numbers in it match, so
 // "KETCHUP 500G" is never compared with "KETCHUP 300G".
 
@@ -45,9 +47,10 @@ const byDate = (a: Purchase, b: Purchase) => a.date.localeCompare(b.date) || a.r
 /** Sizes and counts: "TOMATO SCE HEIN2 500G 2X" → "500 2". A digit inside a word is OCR misreading a letter. */
 const numbersIn = (name: string) => normalizeText(name).match(/(?<![A-Z])\d+/g)?.join(' ') ?? '';
 
-/** Every product bought on a receipt whose items were read, with what it cost each time. */
+/** Every product bought on a receipt whose items add up, with what it cost each time. */
 export function productPrices(items: readonly LineItem[], receipts: readonly Receipt[]): ProductPrices[] {
-  const receiptsById = new Map(receipts.map((r) => [r.id, r]));
+  const addingUp = receiptsAddingUp(items, receipts);
+  const receiptsById = new Map(receipts.filter((r) => addingUp.has(r.id!)).map((r) => [r.id, r]));
   const byKey = new Map<string, Purchase[]>();
   for (const item of items) {
     const receipt = receiptsById.get(item.receiptId);
