@@ -1,5 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useEffect, useState } from 'react';
+import { findDuplicate, type ReceiptDraft } from '../db/receipts';
 import { db } from '../db/schema';
 import { receiptsAddingUp } from '../kpi/adds-up';
 import { productPrices } from '../kpi/prices';
@@ -47,6 +48,11 @@ export function usePrices() {
     const [receipts, items] = await Promise.all([db.receipts.toArray(), db.items.toArray()]);
     return { products: productPrices(items, receipts), itemized: receiptsAddingUp(items, receipts).size, receipts: receipts.length };
   }, []);
+}
+
+/** A saved receipt that looks like this one; null when there is none. */
+export function useDuplicate({ storeId, storeName, date, total }: Pick<ReceiptDraft, 'storeId' | 'storeName' | 'date' | 'total'>) {
+  return useLiveQuery(() => findDuplicate({ storeId, storeName, date, total }), [storeId, storeName, date, total]);
 }
 
 export function useStores() {

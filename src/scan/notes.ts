@@ -1,4 +1,5 @@
 import type { ReadScan } from '../hooks/useReceiptReader';
+import { storeKey } from '../parser/store-match';
 
 /**
  * The receipt seems to go on past the photo: writing was read, but no line saying it is the total
@@ -7,6 +8,21 @@ import type { ReadScan } from '../hooks/useReceiptReader';
  */
 export function looksCutOff(scan: ReadScan): boolean {
   return scan.status === 'done' && !!scan.lines?.length && scan.parsed?.totalConfidence === 'low';
+}
+
+/**
+ * Receipts in the list that look like another one in it (the same photo chosen twice): the same
+ * shop, date and total. Returns their ids.
+ */
+export function sameAsAnother(scans: readonly ReadScan[]): Set<number> {
+  const byKey = new Map<string, number[]>();
+  for (const s of scans) {
+    const p = s.parsed;
+    if (s.status !== 'done' || !p?.storeName || !p.date || !p.total) continue;
+    const key = `${storeKey(p.storeName)}|${p.date}|${p.total}`;
+    byKey.set(key, [...(byKey.get(key) ?? []), s.id]);
+  }
+  return new Set([...byKey.values()].filter((ids) => ids.length > 1).flat());
 }
 
 /** Problems joining the photos of a long receipt, in plain words. */

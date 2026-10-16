@@ -47,6 +47,21 @@ export async function findStore(name: string | null, taxId: string | null): Prom
 }
 
 /**
+ * A saved receipt that looks like this one (the same photo chosen twice, or an expense added
+ * twice): the same date and total, and the same shop when both say which.
+ */
+export async function findDuplicate(draft: Pick<ReceiptDraft, 'storeId' | 'storeName' | 'date' | 'total'>): Promise<Receipt | null> {
+  if (!draft.date || !draft.total) return null;
+  const name = storeKey(draft.storeName);
+  const sameShop = (r: Receipt) => {
+    if (draft.storeId !== null && r.storeId !== null) return draft.storeId === r.storeId;
+    const saved = storeKey(r.storeName);
+    return !name || !saved || name === saved;
+  };
+  return (await db.receipts.where('date').equals(draft.date).filter((r) => r.total === draft.total && sameShop(r)).first()) ?? null;
+}
+
+/**
  * Saves a checked receipt. The shop is created or updated (its category is the one just
  * confirmed, its receipt layout is learned from the OCR text), products the person put in a
  * category are remembered, and only a small picture is kept, never the photo or OCR text.

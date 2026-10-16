@@ -6,6 +6,7 @@ import {
   deleteReceipt,
   deleteReceipts,
   ensureSeeded,
+  findDuplicate,
   findStore,
   restoreItems,
   restoreReceipt,
@@ -243,6 +244,28 @@ describe('backup', () => {
     expect(await db.items.count()).toBe(before.items.length);
     expect(await (await db.thumbs.toArray())[0].image.text()).toBe('jpeg-bytes');
     expect(await getSetting(LAST_BACKUP)).toBeUndefined();
+  });
+});
+
+describe('findDuplicate', () => {
+  it('finds a saved receipt with the same date, total and shop', async () => {
+    const id = await saveReceipt(draft());
+    expect((await findDuplicate(draft()))?.id).toBe(id);
+    // The shop as typed on the review screen, with a different spelling of the same name.
+    expect((await findDuplicate({ ...draft(), storeName: 'INTERMART LTD' }))?.id).toBe(id);
+  });
+
+  it('a different day, total or shop is a different receipt', async () => {
+    await saveReceipt(draft());
+    expect(await findDuplicate(draft({ date: '2026-10-08' }))).toBeNull();
+    expect(await findDuplicate(draft({ total: 30100 }))).toBeNull();
+    expect(await findDuplicate(draft({ storeName: 'Winners' }))).toBeNull();
+  });
+
+  it('an expense without a shop name matches on date and total alone', async () => {
+    const id = await saveReceipt(draft({ storeName: '', taxId: null, source: 'manual', items: [] }));
+    expect((await findDuplicate({ storeId: null, storeName: '', date: '2026-10-07', total: 30000 }))?.id).toBe(id);
+    expect((await findDuplicate({ storeId: null, storeName: 'Bus fare', date: '2026-10-07', total: 30000 }))?.id).toBe(id);
   });
 });
 

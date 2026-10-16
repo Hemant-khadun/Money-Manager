@@ -7,7 +7,7 @@ import { Group, Row, buttonBase, buttonKinds } from '../../components/primitives
 import { photosInOrder, type ReadScan } from '../../hooks/useReceiptReader';
 import { restartedWhileReading } from '../../pipeline/care';
 import { formatMoney } from '../../lib/format';
-import { looksCutOff } from '../../scan/notes';
+import { looksCutOff, sameAsAnother } from '../../scan/notes';
 import { PhotoInput } from './PhotoInput';
 import { ReviewSheet } from './ReviewSheet';
 
@@ -15,7 +15,7 @@ import { ReviewSheet } from './ReviewSheet';
 // Receipts being read sit at the top of the screen, so a photo chosen on a phone shows up where
 // the person is looking, not below the fold.
 
-function status(scan: ReadScan, ready: boolean): string {
+function status(scan: ReadScan, ready: boolean, twin: boolean): string {
   const photos = scan.photos.length > 1 ? `${scan.photos.length} photos · ` : '';
   if (scan.status === 'queued') return `${photos}Waiting its turn`;
   if (scan.status === 'reading') {
@@ -27,7 +27,7 @@ function status(scan: ReadScan, ready: boolean): string {
   if (!scan.lines?.length) return `${photos}Couldn't find any writing. Try a closer photo in good light`;
   // A cut-off receipt's "total" is only a guess (an item's price): not shown as if it were the total.
   const total = looksCutOff(scan) ? null : scan.parsed?.total;
-  return `${photos}Ready to check${total ? ` · ${formatMoney(total)}` : ''}`;
+  return `${photos}Ready to check${total ? ` · ${formatMoney(total)}` : ''}${twin ? ' · Same as another receipt in this list' : ''}`;
 }
 
 /** How far along reading a receipt is. Until the first step reports in, a bar that keeps moving. */
@@ -132,6 +132,7 @@ function JoinBelow({ onJoin }: { onJoin: () => void }) {
 function ScanRow({
   scan,
   ready,
+  twin,
   onOpen,
   onRetry,
   onRemove,
@@ -140,6 +141,8 @@ function ScanRow({
 }: {
   scan: ReadScan;
   ready: boolean;
+  /** It looks like another receipt in the list (the same photo chosen twice). */
+  twin: boolean;
   onOpen: () => void;
   onRetry: () => void;
   onRemove: () => void;
@@ -150,7 +153,7 @@ function ScanRow({
   const reading = scan.status === 'reading';
   const creep = useCreep(reading ? scan.progress : undefined);
   const percent = reading && creep !== undefined ? Math.round(creep * 100) : undefined;
-  const words = status(scan, ready);
+  const words = status(scan, ready, twin);
   return (
     <Row
       onClick={scan.status === 'done' ? onOpen : undefined}
@@ -229,6 +232,7 @@ export function Scan() {
   const { engine, engineError, warmUp, scans } = reader;
   const open = scans.find((s) => s.id === openId && s.status === 'done') ?? null;
   const busy = scans.length > 0;
+  const twins = sameAsAnother(scans);
   const list = useRef<HTMLDivElement>(null);
   const justChosen = useRef(false);
 
@@ -276,6 +280,7 @@ export function Scan() {
                   key={scan.id}
                   scan={scan}
                   ready={!!engine}
+                  twin={twins.has(scan.id)}
                   onOpen={() => setOpenId(scan.id)}
                   onRetry={() => reader.reread(scan.id)}
                   onRemove={() => reader.remove(scan.id)}

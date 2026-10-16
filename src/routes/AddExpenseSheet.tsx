@@ -6,7 +6,8 @@ import { useSafely, useToast } from '../components/Toast';
 import { Button, FieldRow, Group, Segmented, inputClass } from '../components/primitives';
 import { OTHER } from '../db/categories';
 import { saveReceipt } from '../db/receipts';
-import { useCategories, useStores } from '../hooks/data';
+import { useCategories, useDuplicate, useStores } from '../hooks/data';
+import { DuplicateNote } from '../components/DuplicateNote';
 import { FUTURE_DATE, monthName, todayIso } from '../kpi/monthly';
 import { matchStore } from '../parser/store-match';
 import { parseMoneyInput } from '../parser/money';
@@ -36,6 +37,7 @@ export function AddExpenseSheet() {
   const [busy, setBusy] = useState(false);
 
   const cents = parseMoneyInput(amount);
+  const duplicate = useDuplicate({ storeId: null, storeName: what, date, total: cents ?? 0 });
   const tops = categories.filter((c) => !c.parentId);
 
   function reset() {
@@ -91,7 +93,7 @@ export function AddExpenseSheet() {
       title="Add an expense"
       footer={
         <Button className="w-full" disabled={!cents || cents <= 0 || busy} onClick={save}>
-          Add expense
+          {duplicate ? 'Add it again' : 'Add expense'}
         </Button>
       }
     >
@@ -137,6 +139,8 @@ export function AddExpenseSheet() {
           <input id="add-date" type="date" value={date} max={todayIso()} onChange={(e) => e.target.value && setDate(e.target.value)} className={inputClass} />
         </FieldRow>
       </Group>
+
+      {duplicate && <DuplicateNote receipt={duplicate} categories={categories} done="added this expense" onLeave={() => setAddExpenseOpen(false)} />}
 
       <section className="mt-7">
         <h2 className="mb-2 px-1 text-headline">Category</h2>

@@ -8,7 +8,8 @@ import { Button, FieldRow, Group, Segmented, buttonBase, buttonKinds, inputClass
 import { saveReceipt, type ReceiptDraft } from '../../db/receipts';
 import { itemsAddUp } from '../../kpi/adds-up';
 import type { Category } from '../../db/schema';
-import { useCategories, useStores } from '../../hooks/data';
+import { useCategories, useDuplicate, useStores } from '../../hooks/data';
+import { DuplicateNote } from '../../components/DuplicateNote';
 import { photosInOrder, type ReadScan } from '../../hooks/useReceiptReader';
 import { centsToInput, formatMoney } from '../../lib/format';
 import { askToKeepData } from '../../lib/storage';
@@ -215,6 +216,7 @@ export function ReviewSheet({ scan, onClose, onSaved, onAddPhotos, onSplit, onRe
 
   const parsed = scan?.parsed;
   const total = parseMoneyInput(totalText);
+  const duplicate = useDuplicate({ storeId: draft?.storeId ?? null, storeName: draft?.storeName ?? '', date: draft?.date ?? '', total: total ?? 0 });
   const cutOff = !!scan && looksCutOff(scan);
   const notes: string[] = [];
   if (parsed) {
@@ -256,7 +258,7 @@ export function ReviewSheet({ scan, onClose, onSaved, onAddPhotos, onSplit, onRe
       title="Check the receipt"
       footer={
         <Button className="w-full" disabled={!draft || !total || total <= 0 || busy} onClick={save}>
-          Save receipt
+          {duplicate ? 'Save it again' : 'Save receipt'}
         </Button>
       }
     >
@@ -294,6 +296,8 @@ export function ReviewSheet({ scan, onClose, onSaved, onAddPhotos, onSplit, onRe
           )}
         </>
       )}
+
+      {duplicate && <DuplicateNote receipt={duplicate} categories={categories} onLeave={onClose} />}
 
       {notes.length > 0 && (
         <ul className="mt-3 space-y-2 rounded-2xl border border-warn/30 bg-warn/8 px-4 py-3 text-subhead">
