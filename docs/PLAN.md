@@ -493,3 +493,25 @@ A review of the whole app (208 tests passing, type check clean) found gaps that 
 - **Step 7:** after step 6's result (parser work first if below the gate). Nothing started.
 - **Final check on real phones** (above), not yet done: the iPhone reload-while-reading case especially.
 - 5d asked for 5–10 KB of headroom; it is 2.8 KB. More would mean loading the reader hook later, or the charts; not done.
+
+## 15. Later idea: a gentle reminder of expenses that often go together (not yet; after §14)
+**The idea:** a shop trip often comes with spending the app never sees, because there's no receipt or the person forgot: petrol on a supermarket run, lunch out at the mall, parking. If the app could, now and then, quietly ask "you often buy petrol around now too — add it?", it would feel like it understands the person's week, and catch spending that would otherwise be missed.
+
+**Why it's a later idea, not a §14 fix:** §14 is about not losing data and showing right numbers, which has to be solid first. And §6 (real receipts, measured reading) tells us whether the reading is reliable enough to learn habits from. A "smart" feature built on shaky data only amplifies the shakiness.
+
+**The one rule it must not break:** a tracker lives on trust in its numbers. A reminder that *states* spending the person didn't make ("you spent Rs 400 on lunch") is both wrong and annoying, and one wrong number makes every number suspect. So the feature **asks, from the person's own history; it never assumes, never fills in an amount, and never gives generic advice** ("people who shop at malls eat out" is a stranger guessing, not understanding *them*).
+
+**What it does, concretely:**
+- After a receipt is saved, it may show **one** quiet card: "You often buy petrol around this time too. Add it?" with **Add** (opens the normal Add-expense sheet, blank, category pre-chosen) and **Not this time**. No amount, ever. It never blocks saving and is never a popup.
+- The pattern is learned only from **this person's own receipts**: "a receipt at shop/category X is usually followed within a day or two by an expense of category Y". A pairing counts only after it has repeated (at least 3–4 times). Worked out from saved receipts (`src/kpi/`), nothing sent anywhere.
+- It stays **silent until there's enough history** (roughly 6–8 weeks of regular receipts). Silence is the default; a suggestion is the exception.
+
+**The guardrails against nagging (these *are* the spec, not nice-to-haves):**
+- **Backs off when ignored.** Dismiss a given suggestion (e.g. petrol) 2–3 times and that one stops for good — "no" is taken as an answer. Counts kept per pattern in `settings`.
+- **A hard ceiling on frequency:** at most one suggestion a day, and never two in a row for the same pairing.
+- **An easy off switch:** one Settings toggle, "Suggest expenses I might have missed" (and "Don't suggest this again" on the card itself). Off turns the whole thing silent.
+- **Off by default at first.** Ship it off, live with it on your own receipts for a few weeks, and only turn it on for everyone once it has never once made you roll your eyes.
+
+**The test to hold it to:** if the feature vanished, would anyone feel nagged by its absence? No. It should feel like the app being occasionally thoughtful — mildly welcome, never irritating. When in doubt about showing a given reminder, don't.
+
+**Check:** the "is this a real pattern / should it show now" logic is a pure, tested function (how many repeats, the day limit, the back-off, the history threshold) with no UI. The card itself is checked in light and dark, and that dismissing it records the back-off.
