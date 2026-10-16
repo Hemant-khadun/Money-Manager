@@ -70,7 +70,8 @@ export interface MonthSummary {
   /** VAT, where receipts print it. */
   vat: number;
   previousTotal: number;
-  /** Month-end estimate at the current pace; only for the current month, from its 3rd day. */
+  /** Month-end estimate at the current pace; only for the current month, from its 7th day
+   *  (before that, one big shop would be forecast several times over). */
   projected: number | null;
   byCategory: CategoryTotal[];
   byShop: ShopTotal[];
@@ -87,6 +88,9 @@ export function totalsByCategory(receipts: readonly Receipt[], categories: reado
   }
   return totals;
 }
+
+/** The month-end forecast starts on this day of the month. */
+const FORECAST_FROM_DAY = 7;
 
 export function summarizeMonth(receipts: readonly Receipt[], categories: readonly Category[], month: string, today: string): MonthSummary {
   const now = receipts.filter((r) => r.month === month);
@@ -118,7 +122,7 @@ export function summarizeMonth(receipts: readonly Receipt[], categories: readonl
   }
 
   const day = Number(today.slice(8, 10));
-  const projected = today.slice(0, 7) === month && day >= 3 ? Math.round((total / day) * daysInMonth(month)) : null;
+  const projected = today.slice(0, 7) === month && day >= FORECAST_FROM_DAY ? Math.round((total / day) * daysInMonth(month)) : null;
 
   return {
     month,

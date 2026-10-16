@@ -78,7 +78,8 @@ describe('summarizeMonth', () => {
   it('projects the month-end total at the current pace, for the current month only', () => {
     expect(s.projected).toBe(Math.round((257900 / 10) * 31));
     expect(summarizeMonth(RECEIPTS, CATEGORIES, '2026-09', '2026-10-10').projected).toBeNull();
-    expect(summarizeMonth(RECEIPTS, CATEGORIES, '2026-10', '2026-10-02').projected).toBeNull();
+    expect(summarizeMonth(RECEIPTS, CATEGORIES, '2026-10', '2026-10-06').projected).toBeNull();
+    expect(summarizeMonth(RECEIPTS, CATEGORIES, '2026-10', '2026-10-07').projected).not.toBeNull();
   });
 });
 
